@@ -227,6 +227,8 @@ export const toggleActivoLaboratorista = (id: string) => {
   }
   return null;
 };
+
+// ⭐⭐⭐⭐ SETTINGS COMPLETO Y CORREGIDO ⭐⭐⭐⭐
 export const settings = {
   empresa: {
     nombre: 'DentalFlow Manager',
@@ -239,5 +241,8 @@ export const settings = {
     serie: 'DF',
     folio: 1,
     condicionesPago: 'Contado'
-  }
+  },
+  // ⭐⭐⭐⭐ PROPIEDADES NUEVAS QUE RESUELVEN EL ERROR ⭐⭐⭐⭐
+  impuestoPersonaNatural: 0,
+  impuestoPersonaJuridica: 0
 };
