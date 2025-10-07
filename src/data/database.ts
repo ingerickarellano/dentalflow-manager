@@ -227,3 +227,17 @@ export const toggleActivoLaboratorista = (id: string) => {
   }
   return null;
 };
+export const settings = {
+  empresa: {
+    nombre: 'DentalFlow Manager',
+    rfc: '',
+    direccion: '',
+    telefono: '',
+    email: ''
+  },
+  facturacion: {
+    serie: 'DF',
+    folio: 1,
+    condicionesPago: 'Contado'
+  }
+};
