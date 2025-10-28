@@ -184,7 +184,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
       color: '#10b981'
     },
     {
-      id: 'laboratoristas', // ⭐ NUEVO MÓDULO
+      id: 'laboratoristas',
       title: '👨‍🔧 Laboratoristas',
       description: 'Gestiona los técnicos y laboratoristas de tu laboratorio.',
       color: '#f97316'
@@ -200,6 +200,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
       title: '📊 Reportes',
       description: 'Genera reportes de trabajos, ingresos y productividad.',
       color: '#f59e0b'
+    }, // <- AQUÍ FALTABA LA COMA - línea 202
+    {
+      id: 'opciones-cuenta',
+      title: '⚙️ Opciones de la Cuenta',
+      description: 'Configura la información de tu laboratorio, logo y porcentajes.',
+      color: '#6b7280'
     }
   ];
 
@@ -448,9 +454,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
                   {module.id === 'clinicas' && 'Gestionar Clínicas'}
                   {module.id === 'crear-trabajo' && 'Crear Trabajo'}
                   {module.id === 'trabajos-proceso' && 'Ver Trabajos'}
-                  {module.id === 'laboratoristas' && 'Gestionar Técnicos'} {/* ⭐ NUEVO BOTÓN */}
+                  {module.id === 'laboratoristas' && 'Gestionar Técnicos'}
                   {module.id === 'precios' && 'Gestionar Precios'}
                   {module.id === 'reportes' && 'Ver Reportes'}
+                  {module.id === 'opciones-cuenta' && 'Configurar Cuenta'} {/* <- NUEVO BOTÓN */}
                 </button>
               </div>
             ))}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clinica, Dentista, Servicio, clinicas, dentistas, servicios, Trabajo, trabajos } from '../data/database';
+import { Clinica, Dentista, Servicio, Laboratorista, clinicas, dentistas, servicios, laboratoristas, Trabajo, trabajos } from '../data/database';
 
 interface CrearTrabajoProps {
   onBack: () => void;
@@ -20,6 +20,7 @@ type CategoriaType = 'fija' | 'removible' | 'implantes' | 'ortodoncia' | 'repara
 const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
   const [clinicaSeleccionada, setClinicaSeleccionada] = useState<string>('');
   const [dentistaSeleccionado, setDentistaSeleccionado] = useState<string>('');
+  const [laboratoristaSeleccionado, setLaboratoristaSeleccionado] = useState<string>('');
   const [nombrePaciente, setNombrePaciente] = useState<string>('');
   const [trabajosAgregados, setTrabajosAgregados] = useState<TrabajoAgregado[]>([]);
   const [cantidades, setCantidades] = useState<{ [key: string]: number }>({});
@@ -194,6 +195,7 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
   };
 
   const dentistasFiltrados = dentistas.filter(d => d.clinicaId === clinicaSeleccionada);
+  const laboratoristasActivos = laboratoristas.filter(l => l.activo);
   
   // Agrupar servicios por categoría
   const serviciosPorCategoria = servicios.reduce((acc, servicio) => {
@@ -211,8 +213,8 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
   };
 
   // Obtener servicios de la categoría seleccionada
-  const serviciosCategoriaActual = serviciosPorCategoria[categoriaSeleccionada] || [];
-
+const serviciosCategoriaActual = (serviciosPorCategoria[categoriaSeleccionada] || [])
+  .filter(servicio => servicio.activo); // <- Solo servicios activos
   const agregarTrabajo = (servicio: Servicio) => {
     if (!nombrePaciente) {
       alert('Por favor ingresa el nombre del paciente');
@@ -252,6 +254,7 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
     console.log('Intentando finalizar trabajo...');
     console.log('Clínica seleccionada:', clinicaSeleccionada);
     console.log('Dentista seleccionado:', dentistaSeleccionado);
+    console.log('Laboratorista seleccionado:', laboratoristaSeleccionado);
     console.log('Trabajos agregados:', trabajosAgregados.length);
 
     if (!clinicaSeleccionada || !dentistaSeleccionado) {
@@ -270,6 +273,7 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
         id: Date.now().toString(),
         clinicaId: clinicaSeleccionada,
         dentistaId: dentistaSeleccionado,
+        laboratoristaId: laboratoristaSeleccionado || undefined,
         paciente: nombrePaciente,
         servicios: trabajosAgregados.map(trabajo => ({
           servicioId: trabajo.servicio.id,
@@ -292,11 +296,19 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
       
       console.log('Trabajos en base de datos:', trabajos);
       
-      alert(`¡Trabajo creado exitosamente!\nPaciente: ${nombrePaciente}\nTotal: $${calcularTotal()}\nServicios: ${trabajosAgregados.length}`);
+      let mensaje = `¡Trabajo creado exitosamente!\nPaciente: ${nombrePaciente}\nTotal: $${calcularTotal()}\nServicios: ${trabajosAgregados.length}`;
+      
+      if (laboratoristaSeleccionado) {
+        const lab = laboratoristas.find(l => l.id === laboratoristaSeleccionado);
+        mensaje += `\nLaboratorista asignado: ${lab?.nombre}`;
+      }
+      
+      alert(mensaje);
       
       // Limpiar todo
       setTrabajosAgregados([]);
       setNombrePaciente('');
+      setLaboratoristaSeleccionado('');
       setCantidades({});
       setPiezasDentales({});
       
@@ -329,8 +341,8 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Selección de Clínica y Dentista */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+      {/* Selección de Clínica, Dentista y Laboratorista */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
         <div style={styles.formGroup}>
           <label style={styles.label}>Clínica *</label>
           <select 
@@ -364,6 +376,22 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
             {dentistasFiltrados.map(dentista => (
               <option key={dentista.id} value={dentista.id}>
                 {dentista.nombre} - {dentista.especialidad}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Laboratorista (Opcional)</label>
+          <select 
+            style={styles.select}
+            value={laboratoristaSeleccionado}
+            onChange={(e) => setLaboratoristaSeleccionado(e.target.value)}
+          >
+            <option value="">Sin asignar</option>
+            {laboratoristasActivos.map(laboratorista => (
+              <option key={laboratorista.id} value={laboratorista.id}>
+                {laboratorista.nombre} - {laboratorista.especialidad}
               </option>
             ))}
           </select>
@@ -500,7 +528,7 @@ const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
               disabled={!puedeFinalizar}
             >
               🎉 Finalizar y Guardar Trabajo
-            </button>
+             </button>
 
             {!puedeFinalizar && (
               <div style={{marginTop: '0.5rem', color: '#6b7280', fontSize: '0.875rem'}}>

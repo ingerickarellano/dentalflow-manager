@@ -12,7 +12,7 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
   const [formData, setFormData] = useState({
     categoria: 'fija',
     nombre: '',
-    precioBase: 0
+    precioBase: ''
   });
 
   const styles = {
@@ -77,6 +77,7 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
       borderRadius: '0.375rem',
       cursor: 'pointer',
       backgroundColor: 'white',
+      color: '#374151',
       transition: 'all 0.2s'
     },
     filterButtonActive: {
@@ -216,22 +217,38 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.nombre || !formData.precioBase) {
+      alert('Por favor completa todos los campos obligatorios');
+      return;
+    }
+
+    const precio = parseFloat(formData.precioBase);
+    if (isNaN(precio) || precio <= 0) {
+      alert('Por favor ingresa un precio válido');
+      return;
+    }
+    
     if (servicioEditando) {
       // Editar servicio existente
-      actualizarServicio(servicioEditando.id, formData);
-      alert('Servicio actualizado exitosamente');
+      actualizarServicio(servicioEditando.id, {
+        ...formData,
+        precioBase: precio
+      });
+      alert('✅ Servicio actualizado exitosamente');
     } else {
       // Crear nuevo servicio
       agregarServicio({
-        ...formData,
+        categoria: formData.categoria,
+        nombre: formData.nombre,
+        precioBase: precio,
         activo: true
       });
-      alert('Servicio creado exitosamente');
+      alert('✅ Servicio creado exitosamente');
     }
     
     setMostrarFormulario(false);
     setServicioEditando(null);
-    setFormData({ categoria: 'fija', nombre: '', precioBase: 0 });
+    setFormData({ categoria: 'fija', nombre: '', precioBase: '' });
   };
 
   const handleEditar = (servicio: Servicio) => {
@@ -239,7 +256,7 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
     setFormData({
       categoria: servicio.categoria,
       nombre: servicio.nombre,
-      precioBase: servicio.precioBase
+      precioBase: servicio.precioBase.toString()
     });
     setMostrarFormulario(true);
   };
@@ -247,18 +264,20 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
   const handleEliminar = (servicio: Servicio) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar el servicio "${servicio.nombre}"?`)) {
       eliminarServicio(servicio.id);
-      alert('Servicio eliminado exitosamente');
+      alert('✅ Servicio eliminado exitosamente');
     }
   };
 
   const handleToggleActivo = (servicio: Servicio) => {
     toggleActivoServicio(servicio.id);
+    const estado = servicio.activo ? 'desactivado' : 'activado';
+    alert(`✅ Servicio ${estado} exitosamente`);
   };
 
   const handleCancelar = () => {
     setMostrarFormulario(false);
     setServicioEditando(null);
-    setFormData({ categoria: 'fija', nombre: '', precioBase: 0 });
+    setFormData({ categoria: 'fija', nombre: '', precioBase: '' });
   };
 
   return (
@@ -274,7 +293,7 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
           style={styles.button}
           onClick={() => {
             setServicioEditando(null);
-            setFormData({ categoria: 'fija', nombre: '', precioBase: 0 });
+            setFormData({ categoria: 'fija', nombre: '', precioBase: '' });
             setMostrarFormulario(true);
           }}
         >
@@ -331,7 +350,7 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
       {mostrarFormulario && (
         <div style={styles.formContainer}>
           <h3 style={{marginBottom: '1.5rem', color: '#1e293b'}}>
-            {servicioEditando ? 'Editar Servicio' : 'Nuevo Servicio'}
+            {servicioEditando ? '✏️ Editar Servicio' : '➕ Nuevo Servicio'}
           </h3>
           
           <form onSubmit={handleSubmit}>
@@ -367,18 +386,20 @@ const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
                 type="number"
                 style={styles.input}
                 value={formData.precioBase}
-                onChange={(e) => setFormData({...formData, precioBase: parseInt(e.target.value) || 0})}
+                onChange={(e) => setFormData({...formData, precioBase: e.target.value})}
                 min="0"
+                step="0.01"
+                placeholder="0.00"
                 required
               />
             </div>
 
             <div style={{display: 'flex', gap: '0.5rem'}}>
               <button type="submit" style={styles.buttonSuccess}>
-                {servicioEditando ? 'Actualizar' : 'Crear'} Servicio
+                {servicioEditando ? '💾 Actualizar' : '➕ Crear'} Servicio
               </button>
               <button type="button" style={styles.buttonDanger} onClick={handleCancelar}>
-                Cancelar
+                ❌ Cancelar
               </button>
             </div>
           </form>

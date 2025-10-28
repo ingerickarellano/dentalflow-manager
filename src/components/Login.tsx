@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Base de datos temporal de usuarios
 const users = [
@@ -15,6 +16,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  // Verificar si ya está logueado
+  useEffect(() => {
+    const savedUser = localStorage.getItem('dentalflow-user');
+    if (savedUser) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +35,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     
     if (user) {
       console.log('✅ Login exitoso:', user.name);
-      onLogin(user); // Redirigir al dashboard
+      onLogin(user);
     } else {
       setError('Usuario o contraseña incorrectos');
       console.log('❌ Login fallido');
@@ -113,12 +123,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       backgroundColor: '#1d4ed8'
     },
     usersInfo: {
-      marginTop: '1.5rem',
+      marginTop: '1rem',
       padding: '1rem',
       backgroundColor: '#f8fafc',
       borderRadius: '0.375rem',
       fontSize: '0.75rem',
-      color: '#64748b'
+      color: '#64748b',
+      marginBottom: '1rem'
+    },
+    recoveryLink: {
+      textAlign: 'center' as const,
+      marginTop: '1rem'
+    },
+    link: {
+      color: '#2563eb',
+      textDecoration: 'none',
+      fontSize: '0.875rem',
+      cursor: 'pointer'
+    },
+    linkHover: {
+      textDecoration: 'underline'
     }
   };
 
@@ -168,6 +192,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             Iniciar Sesión
           </button>
         </form>
+
+        {/* Enlace de recuperación de cuenta */}
+        <div style={styles.recoveryLink}>
+          <a 
+            style={styles.link}
+            onMouseOver={(e) => Object.assign(e.currentTarget.style, styles.linkHover)}
+            onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+            onClick={() => navigate('/recuperacion-cuenta')}
+          >
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
 
         {/* Información de usuarios de prueba */}
         <div style={styles.usersInfo}>

@@ -1,95 +1,143 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Clinicas from './components/Clinicas';
 import CrearTrabajo from './components/CrearTrabajo';
-import TrabajosProceso from './components/TrabajosProceso'; // <- Agrega esta línea
+import TrabajosProceso from './components/TrabajosProceso';
+import Laboratoristas from './components/Laboratoristas';
+import ListaPrecios from './components/ListaPrecios';
+import Reportes from './components/Reportes';
+import OpcionesCuenta from './components/OpcionesCuenta';
+import Suscripciones from './components/Suscripciones';
+import GestionSuscripciones from './components/GestionSuscripciones';
+import RecuperacionCuenta from './components/RecuperacionCuenta';
 import './App.css';
 
-function App() {
+// Componente principal que maneja la lógica de la aplicación
+function AppContent() {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentModule, setCurrentModule] = useState('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Verificar si el usuario está logueado al cargar la aplicación
+  useEffect(() => {
+    const savedUser = localStorage.getItem('dentalflow-user');
+    if (savedUser) {
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+      setIsLoggedIn(true);
+      
+      // Si está en la raíz, redirigir al dashboard
+      if (location.pathname === '/') {
+        navigate('/dashboard', { replace: true });
+      }
+    } else {
+      // Si no está logueado, redirigir al login
+      if (location.pathname !== '/login') {
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [navigate, location]);
 
   const handleLogin = (userData: any) => {
     setUser(userData);
     setIsLoggedIn(true);
-    setCurrentModule('dashboard');
+    // Guardar usuario en localStorage
+    localStorage.setItem('dentalflow-user', JSON.stringify(userData));
+    navigate('/dashboard', { replace: true });
   };
 
   const handleLogout = () => {
     setUser(null);
     setIsLoggedIn(false);
-    setCurrentModule('dashboard');
+    localStorage.removeItem('dentalflow-user');
+    navigate('/login', { replace: true });
   };
 
   const handleNavigate = (module: string) => {
-    setCurrentModule(module);
+    navigate(`/${module}`);
   };
 
-  const renderModule = () => {
-    switch (currentModule) {
-      case 'dashboard':
-        return <Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />;
-      case 'clinicas':
-        return <Clinicas onBack={() => setCurrentModule('dashboard')} />;
-      case 'crear-trabajo':
-        return <CrearTrabajo onBack={() => setCurrentModule('dashboard')} />;
-      case 'trabajos-proceso':
-        return <TrabajosProceso onBack={() => setCurrentModule('dashboard')} />; // <- Actualiza esta línea
-      case 'precios':
-        return (
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            <h1>💰 Lista de Precios</h1>
-            <p>Módulo en construcción - Próximamente</p>
-            <button 
-              style={{
-                backgroundColor: '#2563eb',
-                color: 'white',
-                padding: '0.5rem 1rem',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer'
-              }}
-              onClick={() => setCurrentModule('dashboard')}
-            >
-              Volver al Dashboard
-            </button>
-          </div>
-        );
-      case 'reportes':
-        return (
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            <h1>📊 Reportes</h1>
-            <p>Módulo en construcción - Próximamente</p>
-            <button 
-              style={{
-                backgroundColor: '#2563eb',
-                color: 'white',
-                padding: '0.5rem 1rem',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer'
-              }}
-              onClick={() => setCurrentModule('dashboard')}
-            >
-              Volver al Dashboard
-            </button>
-          </div>
-        );
-      default:
-        return <Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />;
-    }
+  const handleBack = () => {
+    navigate('/dashboard');
   };
 
+  // Si no está logueado, mostrar solo la ruta de login
+  if (!isLoggedIn) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        <Route path="*" element={<Login onLogin={handleLogin} />} />
+      </Routes>
+    );
+  }
+
+  // Rutas cuando el usuario está logueado
   return (
-    <div className="App">
-      {isLoggedIn ? (
-        renderModule()
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
-    </div>
+    <Routes>
+      <Route 
+        path="/dashboard" 
+        element={<Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />} 
+      />
+      <Route 
+        path="/clinicas" 
+        element={<Clinicas onBack={handleBack} />} 
+      />
+      <Route 
+        path="/crear-trabajo" 
+        element={<CrearTrabajo onBack={handleBack} />} 
+      />
+      <Route 
+        path="/trabajos-proceso" 
+        element={<TrabajosProceso onBack={handleBack} />} 
+      />
+      <Route 
+        path="/laboratoristas" 
+        element={<Laboratoristas onBack={handleBack} />} 
+      />
+      <Route 
+        path="/precios" 
+        element={<ListaPrecios onBack={handleBack} />}
+      />
+      <Route 
+        path="/reportes" 
+        element={<Reportes onBack={handleBack} />}
+      />
+      {/* AGREGAR ESTA NUEVA RUTA - línea 79 aprox */}
+      <Route 
+        path="/opciones-cuenta" 
+        element={<OpcionesCuenta onBack={handleBack} />}
+      />
+      <Route 
+  path="/recuperacion-cuenta" 
+  element={<RecuperacionCuenta onBack={() => navigate('/login')} />}
+/>
+
+      {/* Redirigir cualquier ruta no definida al dashboard */}
+      <Route path="*" element={<Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />} />
+    <Route 
+  path="/suscripciones" 
+  element={<Suscripciones onBack={handleBack} />}
+/>
+<Route 
+  path="/gestion-suscripciones" 
+  element={<GestionSuscripciones onBack={handleBack} />}
+/>
+    </Routes>
+    
+  );
+}
+
+// Componente principal que envuelve con Router
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        <AppContent />
+      </div>
+    </Router>
   );
 }
 
