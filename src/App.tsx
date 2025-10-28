@@ -12,6 +12,8 @@ import OpcionesCuenta from './components/OpcionesCuenta';
 import Suscripciones from './components/Suscripciones';
 import GestionSuscripciones from './components/GestionSuscripciones';
 import RecuperacionCuenta from './components/RecuperacionCuenta';
+import LandingPage from './components/LandingPage';
+import Registro from './components/Registro';
 import './App.css';
 
 // Componente principal que maneja la lógica de la aplicación
@@ -67,10 +69,12 @@ function AppContent() {
   // Si no está logueado, mostrar solo la ruta de login
   if (!isLoggedIn) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route path="*" element={<Login onLogin={handleLogin} />} />
-      </Routes>
+     <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/registro" element={<Registro />} />
+      <Route path="/login" element={<Login onLogin={handleLogin} />} />
+      <Route path="*" element={<LandingPage />} />
+    </Routes>
     );
   }
 
