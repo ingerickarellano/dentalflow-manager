@@ -1,0 +1,3930 @@
+C:\Users\Erick oxo\Downloads\dentalflow-manager-master\dentalflow-manager-master
+
+.gitignore
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+-------------
+package.json
+-----------
+package-lock.json
+---------------
+README.md
+---------
+tsconfig.json
+-------------
+C:\Users\Erick oxo\Downloads\dentalflow-manager-master\dentalflow-manager-master\public
+
+index.html
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>React App</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
+
+
+-------
+manifest.json
+
+{
+  "short_name": "React App",
+  "name": "Create React App Sample",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
+
+---------
+
+C:\Users\Erick oxo\Downloads\dentalflow-manager-master\dentalflow-manager-master\src
+App.css
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+--------------
+App.tsx
+import React, { useState } from 'react';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import Clinicas from './components/Clinicas';
+import CrearTrabajo from './components/CrearTrabajo';
+import TrabajosProceso from './components/TrabajosProceso';
+import Laboratoristas from './components/Laboratoristas';
+import './App.css';
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentModule, setCurrentModule] = useState('dashboard');
+
+  const handleLogin = (userData: any) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+    setCurrentModule('dashboard');
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsLoggedIn(false);
+    setCurrentModule('dashboard');
+  };
+
+  const handleNavigate = (module: string) => {
+    setCurrentModule(module);
+  };
+
+  const renderModule = () => {
+    switch (currentModule) {
+      case 'dashboard':
+        return <Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />;
+      case 'clinicas':
+        return <Clinicas onBack={() => setCurrentModule('dashboard')} />;
+      case 'crear-trabajo':
+        return <CrearTrabajo onBack={() => setCurrentModule('dashboard')} />;
+      case 'trabajos-proceso':
+        return <TrabajosProceso onBack={() => setCurrentModule('dashboard')} />;
+      case 'laboratoristas':
+        return <Laboratoristas onBack={() => setCurrentModule('dashboard')} />;
+      case 'precios':
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>💰 Lista de Precios</h1>
+            <p>Módulo en construcción - Próximamente</p>
+            <button 
+              style={{
+                backgroundColor: '#2563eb',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer'
+              }}
+              onClick={() => setCurrentModule('dashboard')}
+            >
+              Volver al Dashboard
+            </button>
+          </div>
+        );
+      case 'reportes':
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>📊 Reportes</h1>
+            <p>Módulo en construcción - Próximamente</p>
+            <button 
+              style={{
+                backgroundColor: '#2563eb',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer'
+              }}
+              onClick={() => setCurrentModule('dashboard')}
+            >
+              Volver al Dashboard
+            </button>
+          </div>
+        );
+      default:
+        return <Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />;
+    }
+  };
+
+  return (
+    <div className="App">
+      {isLoggedIn ? (
+        renderModule()
+      ) : (
+        <Login onLogin={handleLogin} />
+      )}
+    </div>
+  );
+}
+
+export default App;--------
+index.css
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+}
+
+
+
+
+
+----------------
+index.tsx
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+--------------------------
+react-app-env.d.ts
+/// <reference types="react-scripts" />
+
+----------------------
+reportWebVitals.ts
+
+import { ReportHandler } from 'web-vitals';
+
+const reportWebVitals = (onPerfEntry?: ReportHandler) => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+-----------------
+setupTests.ts
+ // jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+
+-------------------
+
+C:\Users\Erick oxo\Downloads\dentalflow-manager-master\dentalflow-manager-master\src\components
+
+----                 -------------         ------ ----
+ Clinicas.tsx
+import React, { useState } from 'react';
+import { Clinica, Dentista, clinicas, dentistas } from '../data/database';
+
+interface ClinicasProps {
+  onBack: () => void;
+}
+
+const Clinicas: React.FC<ClinicasProps> = ({ onBack }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [currentClinica, setCurrentClinica] = useState<Clinica | null>(null);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    direccion: '',
+    telefono: '',
+    email: ''
+  });
+
+  const styles = {
+    container: {
+      padding: '20px',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '2rem'
+    },
+    title: {
+      color: '#1e293b',
+      fontSize: '1.5rem',
+      fontWeight: 'bold'
+    },
+    button: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    },
+    backButton: {
+      backgroundColor: '#64748b',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginRight: '0.5rem'
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '1.5rem'
+    },
+    card: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      borderLeft: '4px solid #2563eb'
+    },
+    cardTitle: {
+      color: '#1e293b',
+      fontSize: '1.125rem',
+      fontWeight: '600',
+      margin: '0 0 1rem 0'
+    },
+    dentistaItem: {
+      padding: '0.5rem',
+      borderBottom: '1px solid #e2e8f0',
+      marginBottom: '0.5rem'
+    },
+    form: {
+      backgroundColor: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      marginBottom: '2rem'
+    },
+    formGroup: {
+      marginBottom: '1rem'
+    },
+    label: {
+      display: 'block',
+      color: '#1e293b',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      marginBottom: '0.5rem'
+    },
+    input: {
+      width: '100%',
+      padding: '0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      boxSizing: 'border-box' as const
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginTop: '1rem'
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Aquí guardaríamos la clínica
+    console.log('Guardar clínica:', formData);
+    alert('Clínica guardada exitosamente');
+    setShowForm(false);
+    setFormData({ nombre: '', direccion: '', telefono: '', email: '' });
+  };
+
+  const handleAddDentista = (clinicaId: string) => {
+    alert(`Agregar dentista a clínica: ${clinicaId}`);
+    // Aquí implementaríamos el formulario para agregar dentista
+  };
+
+  const handleEditClinica = (clinica: Clinica) => {
+    setCurrentClinica(clinica);
+    setFormData({
+      nombre: clinica.nombre,
+      direccion: clinica.direccion,
+      telefono: clinica.telefono,
+      email: clinica.email
+    });
+    setShowForm(true);
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div>
+          <button 
+            style={styles.backButton}
+            onClick={onBack}
+          >
+            ← Volver al Dashboard
+          </button>
+          <h1 style={styles.title}>🏥 Clínicas y Dentistas</h1>
+        </div>
+        <button 
+          style={styles.button}
+          onClick={() => {
+            setCurrentClinica(null);
+            setFormData({ nombre: '', direccion: '', telefono: '', email: '' });
+            setShowForm(!showForm);
+          }}
+        >
+          {showForm ? 'Cancelar' : '+ Agregar Clínica'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form style={styles.form} onSubmit={handleSubmit}>
+          <h3 style={{margin: '0 0 1rem 0', color: '#1e293b'}}>
+            {currentClinica ? 'Editar Clínica' : 'Nueva Clínica'}
+          </h3>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Nombre de la Clínica</label>
+            <input
+              type="text"
+              style={styles.input}
+              value={formData.nombre}
+              onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+              placeholder="Ej: Clínica Dental Smile"
+              required
+            />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Dirección</label>
+            <input
+              type="text"
+              style={styles.input}
+              value={formData.direccion}
+              onChange={(e) => setFormData({...formData, direccion: e.target.value})}
+              placeholder="Ej: Av. Principal 123"
+              required
+            />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Teléfono</label>
+            <input
+              type="tel"
+              style={styles.input}
+              value={formData.telefono}
+              onChange={(e) => setFormData({...formData, telefono: e.target.value})}
+              placeholder="Ej: 555-0101"
+              required
+            />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Email</label>
+            <input
+              type="email"
+              style={styles.input}
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              placeholder="Ej: info@clinica.com"
+              required
+            />
+          </div>
+
+          <button type="submit" style={styles.button}>
+            {currentClinica ? 'Actualizar' : 'Guardar'} Clínica
+          </button>
+        </form>
+      )}
+
+      <div style={styles.grid}>
+        {clinicas.map(clinica => {
+          const dentistasClinica = dentistas.filter(d => d.clinicaId === clinica.id);
+          
+          return (
+            <div key={clinica.id} style={styles.card}>
+              <h3 style={styles.cardTitle}>{clinica.nombre}</h3>
+              <p><strong>📍 Dirección:</strong> {clinica.direccion}</p>
+              <p><strong>📞 Teléfono:</strong> {clinica.telefono}</p>
+              <p><strong>✉️ Email:</strong> {clinica.email}</p>
+              
+              <h4 style={{margin: '1rem 0 0.5rem 0', color: '#475569'}}>Dentistas:</h4>
+              {dentistasClinica.length > 0 ? (
+                dentistasClinica.map(dentista => (
+                  <div key={dentista.id} style={styles.dentistaItem}>
+                    <strong>{dentista.nombre}</strong>
+                    <br />
+                    <small>Especialidad: {dentista.especialidad}</small>
+                    <br />
+                    <small>Tel: {dentista.telefono}</small>
+                  </div>
+                ))
+              ) : (
+                <p style={{color: '#94a3b8', fontStyle: 'italic'}}>No hay dentistas registrados</p>
+              )}
+              
+              <div style={styles.buttonGroup}>
+                <button 
+                  style={{
+                    ...styles.button,
+                    backgroundColor: '#06b6d4'
+                  }}
+                  onClick={() => handleAddDentista(clinica.id)}
+                >
+                  Agregar Dentista
+                </button>
+                
+                <button 
+                  style={{
+                    ...styles.button,
+                    backgroundColor: '#10b981'
+                  }}
+                  onClick={() => handleEditClinica(clinica)}
+                >
+                  Editar
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {clinicas.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem',
+          color: '#64748b'
+        }}>
+          <h3>No hay clínicas registradas</h3>
+          <p>Comienza agregando tu primera clínica usando el botón "Agregar Clínica"</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Clinicas;
+---
+ Configuracion.tsx
+import React, { useState } from 'react';
+import { settings, clinicas } from '../data/database';
+
+interface ConfiguracionProps {
+  onBack: () => void;
+}
+
+const Configuracion: React.FC<ConfiguracionProps> = ({ onBack }) => {
+  const [taxNatural, setTaxNatural] = useState(0);
+  const [taxJuridica, setTaxJuridica] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <button onClick={onBack} style={{ 
+        backgroundColor: '#64748b',
+        color: 'white',
+        padding: '0.5rem 1rem',
+        border: 'none',
+        borderRadius: '0.375rem',
+        cursor: 'pointer',
+        marginBottom: '2rem'
+      }}>
+        ← Volver al Dashboard
+      </button>
+      
+      <h1>⚙️ Configuración</h1>
+      <p>Módulo de configuración - En construcción</p>
+      
+      <div style={{ 
+        backgroundColor: 'white', 
+        padding: '2rem', 
+        borderRadius: '0.5rem',
+        marginTop: '2rem'
+      }}>
+        <h3>Configuración de Impuestos</h3>
+        <div style={{ marginBottom: '1rem' }}>
+          <label>Impuesto Persona Natural: </label>
+          <input 
+            type="number" 
+            value={taxNatural} 
+            onChange={(e) => setTaxNatural(Number(e.target.value))}
+          />
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <label>Impuesto Persona Jurídica: </label>
+          <input 
+            type="number" 
+            value={taxJuridica} 
+            onChange={(e) => setTaxJuridica(Number(e.target.value))}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Configuracion;
+
+--
+
+CrearTrabajo.tsx
+import React, { useState } from 'react';
+import { Clinica, Dentista, Servicio, Laboratorista, clinicas, dentistas, servicios, laboratoristas, Trabajo, trabajos } from '../data/database';
+
+interface CrearTrabajoProps {
+  onBack: () => void;
+}
+
+interface TrabajoAgregado {
+  id: string;
+  paciente: string;
+  servicio: Servicio;
+  cantidad: number;
+  piezaDental: string;
+  precioUnitario: number;
+}
+
+// Definir el tipo para las categorías
+type CategoriaType = 'fija' | 'removible' | 'implantes' | 'ortodoncia' | 'reparaciones';
+
+const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
+  const [clinicaSeleccionada, setClinicaSeleccionada] = useState<string>('');
+  const [dentistaSeleccionado, setDentistaSeleccionado] = useState<string>('');
+  const [laboratoristaSeleccionado, setLaboratoristaSeleccionado] = useState<string>('');
+  const [nombrePaciente, setNombrePaciente] = useState<string>('');
+  const [trabajosAgregados, setTrabajosAgregados] = useState<TrabajoAgregado[]>([]);
+  const [cantidades, setCantidades] = useState<{ [key: string]: number }>({});
+  const [piezasDentales, setPiezasDentales] = useState<{ [key: string]: string }>({});
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<CategoriaType>('fija');
+
+  const styles = {
+    container: {
+      padding: '20px',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '2rem'
+    },
+    title: {
+      color: '#1e293b',
+      fontSize: '1.5rem',
+      fontWeight: 'bold'
+    },
+    backButton: {
+      backgroundColor: '#64748b',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginRight: '0.5rem'
+    },
+    formGroup: {
+      marginBottom: '1.5rem'
+    },
+    label: {
+      display: 'block',
+      color: '#1e293b',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      marginBottom: '0.5rem'
+    },
+    input: {
+      width: '100%',
+      padding: '0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      boxSizing: 'border-box' as const
+    },
+    select: {
+      width: '100%',
+      padding: '0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      backgroundColor: 'white'
+    },
+    button: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginRight: '0.5rem'
+    },
+    buttonSuccess: {
+      backgroundColor: '#10b981',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    },
+    buttonDisabled: {
+      backgroundColor: '#9ca3af',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'not-allowed'
+    },
+    serviciosGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '1rem',
+      marginTop: '1rem'
+    },
+    servicioCard: {
+      border: '1px solid #e2e8f0',
+      borderRadius: '0.375rem',
+      padding: '1rem',
+      backgroundColor: 'white'
+    },
+    servicioHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '1rem'
+    },
+    controlesServicio: {
+      display: 'flex',
+      gap: '0.5rem',
+      alignItems: 'center',
+      marginTop: '0.5rem'
+    },
+    inputCantidad: {
+      width: '60px',
+      padding: '0.25rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.25rem',
+      textAlign: 'center' as const
+    },
+    inputPieza: {
+      width: '80px',
+      padding: '0.25rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.25rem'
+    },
+    listaTrabajos: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      marginTop: '2rem'
+    },
+    trabajoItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '0.75rem',
+      borderBottom: '1px solid #e2e8f0'
+    },
+    total: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      padding: '1rem 0',
+      borderTop: '2px solid #2563eb',
+      fontWeight: 'bold',
+      fontSize: '1.125rem',
+      marginTop: '1rem'
+    },
+    categoriaTitle: {
+      color: '#475569',
+      fontSize: '1.125rem',
+      fontWeight: '600',
+      margin: '1.5rem 0 0.5rem 0',
+      paddingBottom: '0.5rem',
+      borderBottom: '2px solid #e2e8f0'
+    },
+    selectorCategorias: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginBottom: '1rem',
+      flexWrap: 'wrap' as const
+    },
+    botonCategoria: {
+      padding: '0.5rem 1rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      backgroundColor: 'white',
+      color: '#374151',
+      transition: 'all 0.2s'
+    },
+    botonCategoriaActivo: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      borderColor: '#2563eb'
+    }
+  };
+
+  const dentistasFiltrados = dentistas.filter(d => d.clinicaId === clinicaSeleccionada);
+  const laboratoristasActivos = laboratoristas.filter(l => l.activo);
+  
+  // Agrupar servicios por categoría
+  const serviciosPorCategoria = servicios.reduce((acc, servicio) => {
+    if (!acc[servicio.categoria]) acc[servicio.categoria] = [];
+    acc[servicio.categoria].push(servicio);
+    return acc;
+  }, {} as Record<string, Servicio[]>);
+
+  const categorias: Record<CategoriaType, string> = {
+    'fija': '🦷 Prótesis Fija',
+    'removible': '👄 Prótesis Removible', 
+    'implantes': '⚡ Implantes',
+    'ortodoncia': '🎯 Ortodoncia',
+    'reparaciones': '🔧 Reparaciones y Otros'
+  };
+
+  // Obtener servicios de la categoría seleccionada
+  const serviciosCategoriaActual = serviciosPorCategoria[categoriaSeleccionada] || [];
+
+  const agregarTrabajo = (servicio: Servicio) => {
+    if (!nombrePaciente) {
+      alert('Por favor ingresa el nombre del paciente');
+      return;
+    }
+
+    const cantidad = cantidades[servicio.id] || 1;
+    const piezaDental = piezasDentales[servicio.id] || '';
+
+    const trabajo: TrabajoAgregado = {
+      id: Date.now().toString() + Math.random(),
+      paciente: nombrePaciente,
+      servicio,
+      cantidad,
+      piezaDental,
+      precioUnitario: servicio.precioBase
+    };
+
+    setTrabajosAgregados([...trabajosAgregados, trabajo]);
+    
+    // Limpiar los inputs para este servicio
+    setCantidades(prev => ({ ...prev, [servicio.id]: 1 }));
+    setPiezasDentales(prev => ({ ...prev, [servicio.id]: '' }));
+  };
+
+  const eliminarTrabajo = (id: string) => {
+    setTrabajosAgregados(trabajosAgregados.filter(t => t.id !== id));
+  };
+
+  const calcularTotal = () => {
+    return trabajosAgregados.reduce((total, trabajo) => 
+      total + (trabajo.precioUnitario * trabajo.cantidad), 0
+    );
+  };
+
+  const finalizarTrabajo = () => {
+    console.log('Intentando finalizar trabajo...');
+    console.log('Clínica seleccionada:', clinicaSeleccionada);
+    console.log('Dentista seleccionado:', dentistaSeleccionado);
+    console.log('Laboratorista seleccionado:', laboratoristaSeleccionado);
+    console.log('Trabajos agregados:', trabajosAgregados.length);
+
+    if (!clinicaSeleccionada || !dentistaSeleccionado) {
+      alert('Por favor selecciona una clínica y dentista');
+      return;
+    }
+
+    if (trabajosAgregados.length === 0) {
+      alert('Por favor agrega al menos un trabajo');
+      return;
+    }
+
+    try {
+      // Crear un solo trabajo que contenga todos los servicios
+      const trabajoCompleto: Trabajo = {
+        id: Date.now().toString(),
+        clinicaId: clinicaSeleccionada,
+        dentistaId: dentistaSeleccionado,
+        laboratoristaId: laboratoristaSeleccionado || undefined,
+        paciente: nombrePaciente,
+        servicios: trabajosAgregados.map(trabajo => ({
+          servicioId: trabajo.servicio.id,
+          cantidad: trabajo.cantidad,
+          precioUnitario: trabajo.precioUnitario
+        })),
+        fechaRecibido: new Date().toISOString().split('T')[0],
+        fechaEntrega: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estado: 'pendiente',
+        precioTotal: calcularTotal(),
+        observaciones: trabajosAgregados.map(t => 
+          t.piezaDental ? `${t.servicio.nombre} - Pieza: ${t.piezaDental}` : t.servicio.nombre
+        ).join(' | ')
+      };
+
+      console.log('Trabajo a guardar:', trabajoCompleto);
+      
+      // Agregar a la base de datos
+      trabajos.push(trabajoCompleto);
+      
+      console.log('Trabajos en base de datos:', trabajos);
+      
+      let mensaje = `¡Trabajo creado exitosamente!\nPaciente: ${nombrePaciente}\nTotal: $${calcularTotal()}\nServicios: ${trabajosAgregados.length}`;
+      
+      if (laboratoristaSeleccionado) {
+        const lab = laboratoristas.find(l => l.id === laboratoristaSeleccionado);
+        mensaje += `\nLaboratorista asignado: ${lab?.nombre}`;
+      }
+      
+      alert(mensaje);
+      
+      // Limpiar todo
+      setTrabajosAgregados([]);
+      setNombrePaciente('');
+      setLaboratoristaSeleccionado('');
+      setCantidades({});
+      setPiezasDentales({});
+      
+    } catch (error) {
+      console.error('Error al guardar el trabajo:', error);
+      alert('Error al guardar el trabajo. Por favor intenta nuevamente.');
+    }
+  };
+
+  const actualizarCantidad = (servicioId: string, cantidad: number) => {
+    if (cantidad < 1) cantidad = 1;
+    setCantidades(prev => ({ ...prev, [servicioId]: cantidad }));
+  };
+
+  const actualizarPiezaDental = (servicioId: string, pieza: string) => {
+    setPiezasDentales(prev => ({ ...prev, [servicioId]: pieza }));
+  };
+
+  // Verificar si el botón debe estar habilitado
+  const puedeFinalizar = clinicaSeleccionada && dentistaSeleccionado && trabajosAgregados.length > 0;
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div>
+          <button style={styles.backButton} onClick={onBack}>
+            ← Volver al Dashboard
+          </button>
+          <h1 style={styles.title}>📋 Crear Lista de Trabajo</h1>
+        </div>
+      </div>
+
+      {/* Selección de Clínica, Dentista y Laboratorista */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Clínica *</label>
+          <select 
+            style={styles.select}
+            value={clinicaSeleccionada}
+            onChange={(e) => {
+              setClinicaSeleccionada(e.target.value);
+              setDentistaSeleccionado('');
+            }}
+            required
+          >
+            <option value="">Selecciona una clínica</option>
+            {clinicas.map(clinica => (
+              <option key={clinica.id} value={clinica.id}>
+                {clinica.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Dentista *</label>
+          <select 
+            style={styles.select}
+            value={dentistaSeleccionado}
+            onChange={(e) => setDentistaSeleccionado(e.target.value)}
+            disabled={!clinicaSeleccionada}
+            required
+          >
+            <option value="">Selecciona un dentista</option>
+            {dentistasFiltrados.map(dentista => (
+              <option key={dentista.id} value={dentista.id}>
+                {dentista.nombre} - {dentista.especialidad}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Laboratorista (Opcional)</label>
+          <select 
+            style={styles.select}
+            value={laboratoristaSeleccionado}
+            onChange={(e) => setLaboratoristaSeleccionado(e.target.value)}
+          >
+            <option value="">Sin asignar</option>
+            {laboratoristasActivos.map(laboratorista => (
+              <option key={laboratorista.id} value={laboratorista.id}>
+                {laboratorista.nombre} - {laboratorista.especialidad}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Nombre del Paciente */}
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Nombre del Paciente *</label>
+        <input
+          type="text"
+          style={styles.input}
+          value={nombrePaciente}
+          onChange={(e) => setNombrePaciente(e.target.value)}
+          placeholder="Ej: Juan Pérez"
+          required
+        />
+      </div>
+
+      {/* Selector de Categorías */}
+      <div style={styles.selectorCategorias}>
+        {(Object.entries(categorias) as [CategoriaType, string][]).map(([key, nombre]) => (
+          <button
+            key={key}
+            style={{
+              ...styles.botonCategoria,
+              ...(categoriaSeleccionada === key ? styles.botonCategoriaActivo : {})
+            }}
+            onClick={() => setCategoriaSeleccionada(key)}
+          >
+            {nombre}
+          </button>
+        ))}
+      </div>
+
+      {/* Lista de Servicios de la Categoría Seleccionada */}
+      <div>
+        <h3 style={styles.categoriaTitle}>{categorias[categoriaSeleccionada]}</h3>
+        <div style={styles.serviciosGrid}>
+          {serviciosCategoriaActual.map(servicio => (
+            <div key={servicio.id} style={styles.servicioCard}>
+              <div style={styles.servicioHeader}>
+                <div style={{flex: 1}}>
+                  <strong>{servicio.nombre}</strong>
+                  <div style={{color: '#2563eb', fontWeight: 'bold', marginTop: '0.5rem'}}>
+                    ${servicio.precioBase}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={styles.controlesServicio}>
+                <input
+                  type="number"
+                  style={styles.inputCantidad}
+                  value={cantidades[servicio.id] || 1}
+                  min="1"
+                  onChange={(e) => actualizarCantidad(servicio.id, parseInt(e.target.value) || 1)}
+                  placeholder="Cant"
+                />
+                
+                <input
+                  type="text"
+                  style={styles.inputPieza}
+                  value={piezasDentales[servicio.id] || ''}
+                  onChange={(e) => actualizarPiezaDental(servicio.id, e.target.value)}
+                  placeholder="Pieza"
+                />
+                
+                <button 
+                  style={styles.buttonSuccess}
+                  onClick={() => agregarTrabajo(servicio)}
+                >
+                  Agregar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Lista de Trabajos Agregados */}
+      <div style={styles.listaTrabajos}>
+        <h3 style={{marginBottom: '1rem', color: '#1e293b'}}>
+          📋 Lista de Trabajos ({trabajosAgregados.length})
+        </h3>
+        
+        {trabajosAgregados.length === 0 ? (
+          <p style={{color: '#64748b', textAlign: 'center', padding: '2rem'}}>
+            No hay trabajos agregados. Completa los datos y agrega servicios.
+          </p>
+        ) : (
+          <>
+            {trabajosAgregados.map((trabajo) => (
+              <div key={trabajo.id} style={styles.trabajoItem}>
+                <div style={{flex: 1}}>
+                  <strong>{trabajo.paciente}</strong>
+                  <div style={{fontSize: '0.875rem', color: '#64748b'}}>
+                    {trabajo.servicio.nombre}
+                    {trabajo.cantidad > 1 && ` • Cantidad: ${trabajo.cantidad}`}
+                    {trabajo.piezaDental && ` • Pieza: ${trabajo.piezaDental}`}
+                  </div>
+                </div>
+                <div style={{textAlign: 'right'}}>
+                  <div style={{fontWeight: 'bold', color: '#2563eb'}}>
+                    ${trabajo.precioUnitario * trabajo.cantidad}
+                  </div>
+                  <button 
+                    style={{
+                      backgroundColor: '#dc2626',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.25rem',
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      marginTop: '0.25rem'
+                    }}
+                    onClick={() => eliminarTrabajo(trabajo.id)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+            
+            <div style={styles.total}>
+              <span>TOTAL GENERAL:</span>
+              <span>${calcularTotal()}</span>
+            </div>
+
+            <button 
+              style={puedeFinalizar ? styles.button : styles.buttonDisabled} 
+              onClick={finalizarTrabajo}
+              disabled={!puedeFinalizar}
+            >
+              🎉 Finalizar y Guardar Trabajo
+            </button>
+
+            {!puedeFinalizar && (
+              <div style={{marginTop: '0.5rem', color: '#6b7280', fontSize: '0.875rem'}}>
+                {!clinicaSeleccionada && "• Selecciona una clínica\n"}
+                {!dentistaSeleccionado && "• Selecciona un dentista\n"}
+                {trabajosAgregados.length === 0 && "• Agrega al menos un trabajo"}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CrearTrabajo;
+
+
+
+
+
+----
+Dashboard.tsx
+import React, { useState } from 'react';
+import { clinicas, dentistas, trabajos, servicios, laboratoristas } from '../data/database';
+
+interface DashboardProps {
+  onNavigate: (module: string) => void;
+  onLogout: () => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
+  const [terminoBusqueda, setTerminoBusqueda] = useState('');
+  const [resultados, setResultados] = useState<{
+    pacientes: any[];
+    clinicas: any[];
+    trabajos: any[];
+  }>({
+    pacientes: [],
+    clinicas: [],
+    trabajos: []
+  });
+
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      backgroundColor: '#f8fafc',
+      padding: '20px'
+    },
+    header: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      marginBottom: '2rem'
+    },
+    title: {
+      color: '#1e293b',
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      margin: 0
+    },
+    subtitle: {
+      color: '#64748b',
+      marginTop: '0.5rem'
+    },
+    searchContainer: {
+      marginTop: '1.5rem',
+      position: 'relative' as const
+    },
+    searchInput: {
+      width: '100%',
+      padding: '0.75rem 1rem',
+      paddingLeft: '2.5rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.5rem',
+      fontSize: '1rem',
+      boxSizing: 'border-box' as const
+    },
+    searchIcon: {
+      position: 'absolute' as const,
+      left: '0.75rem',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: '#9ca3af'
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '1.5rem',
+      marginTop: '2rem'
+    },
+    card: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      borderLeft: '4px solid #2563eb',
+      cursor: 'pointer',
+      transition: 'transform 0.2s, box-shadow 0.2s'
+    },
+    cardHover: {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+    },
+    cardTitle: {
+      color: '#1e293b',
+      fontSize: '1.125rem',
+      fontWeight: '600',
+      margin: '0 0 1rem 0'
+    },
+    cardContent: {
+      color: '#64748b',
+      margin: '0 0 1rem 0'
+    },
+    button: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginTop: '1rem'
+    },
+    logoutButton: {
+      backgroundColor: '#dc2626',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginTop: '2rem'
+    },
+    resultadosContainer: {
+      marginTop: '1.5rem',
+      backgroundColor: 'white',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      padding: '1.5rem'
+    },
+    resultadoSection: {
+      marginBottom: '1.5rem'
+    },
+    resultadoTitle: {
+      color: '#374151',
+      fontSize: '1.125rem',
+      fontWeight: '600',
+      marginBottom: '0.75rem'
+    },
+    resultadoItem: {
+      padding: '0.75rem',
+      border: '1px solid #e5e7eb',
+      borderRadius: '0.375rem',
+      marginBottom: '0.5rem',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s'
+    },
+    resultadoItemHover: {
+      backgroundColor: '#f3f4f6'
+    },
+    badge: {
+      display: 'inline-block',
+      padding: '0.25rem 0.5rem',
+      borderRadius: '0.25rem',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      marginLeft: '0.5rem'
+    },
+    badgePendiente: {
+      backgroundColor: '#fef3c7',
+      color: '#92400e'
+    },
+    badgeProduccion: {
+      backgroundColor: '#dbeafe',
+      color: '#1e40af'
+    },
+    badgeTerminado: {
+      backgroundColor: '#d1fae5',
+      color: '#065f46'
+    },
+    badgeEntregado: {
+      backgroundColor: '#e5e7eb',
+      color: '#374151'
+    }
+  };
+
+  const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
+  const [hoveredResultado, setHoveredResultado] = React.useState<string | null>(null);
+
+  const modules = [
+    {
+      id: 'clinicas',
+      title: '🏥 Clínicas y Dentistas',
+      description: 'Gestiona las clínicas dentales y odontólogos asociados a tu laboratorio.',
+      color: '#2563eb'
+    },
+    {
+      id: 'crear-trabajo',
+      title: '📋 Crear Lista de Trabajo',
+      description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
+      color: '#06b6d4'
+    },
+    {
+      id: 'trabajos-proceso',
+      title: '🔧 Trabajos en Proceso',
+      description: 'Control y seguimiento de trabajos dentales en producción.',
+      color: '#10b981'
+    },
+    {
+      id: 'laboratoristas', // ⭐ NUEVO MÓDULO
+      title: '👨‍🔧 Laboratoristas',
+      description: 'Gestiona los técnicos y laboratoristas de tu laboratorio.',
+      color: '#f97316'
+    },
+    {
+      id: 'precios',
+      title: '💰 Lista de Precios',
+      description: 'Configura precios base y personalizados por clínica/dentista.',
+      color: '#8b5cf6'
+    },
+    {
+      id: 'reportes',
+      title: '📊 Reportes',
+      description: 'Genera reportes de trabajos, ingresos y productividad.',
+      color: '#f59e0b'
+    }
+  ];
+
+  const handleBuscar = (termino: string) => {
+    setTerminoBusqueda(termino);
+
+    if (!termino.trim()) {
+      setResultados({ pacientes: [], clinicas: [], trabajos: [] });
+      return;
+    }
+
+    const terminoLower = termino.toLowerCase();
+
+    // Buscar en pacientes
+    const pacientesEncontrados = trabajos.filter(trabajo =>
+      trabajo.paciente.toLowerCase().includes(terminoLower)
+    ).map(trabajo => ({
+      ...trabajo,
+      tipo: 'paciente',
+      clinica: clinicas.find(c => c.id === trabajo.clinicaId)?.nombre,
+      dentista: dentistas.find(d => d.id === trabajo.dentistaId)?.nombre,
+      laboratorista: laboratoristas.find(l => l.id === trabajo.laboratoristaId)?.nombre
+    }));
+
+    // Buscar en clínicas
+    const clinicasEncontradas = clinicas.filter(clinica =>
+      clinica.nombre.toLowerCase().includes(terminoLower) ||
+      clinica.direccion.toLowerCase().includes(terminoLower) ||
+      clinica.email.toLowerCase().includes(terminoLower)
+    );
+
+    // Buscar en trabajos (por estado o servicios)
+    const trabajosEncontrados = trabajos.filter(trabajo =>
+      trabajo.estado.toLowerCase().includes(terminoLower) ||
+      trabajo.servicios.some(servicioTrabajo => {
+        const servicio = servicios.find(s => s.id === servicioTrabajo.servicioId);
+        return servicio?.nombre.toLowerCase().includes(terminoLower);
+      })
+    ).map(trabajo => ({
+      ...trabajo,
+      tipo: 'trabajo',
+      clinica: clinicas.find(c => c.id === trabajo.clinicaId)?.nombre,
+      dentista: dentistas.find(d => d.id === trabajo.dentistaId)?.nombre,
+      laboratorista: laboratoristas.find(l => l.id === trabajo.laboratoristaId)?.nombre
+    }));
+
+    setResultados({
+      pacientes: pacientesEncontrados,
+      clinicas: clinicasEncontradas,
+      trabajos: trabajosEncontrados
+    });
+  };
+
+  const getBadgeStyle = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return { ...styles.badge, ...styles.badgePendiente };
+      case 'produccion':
+        return { ...styles.badge, ...styles.badgeProduccion };
+      case 'terminado':
+        return { ...styles.badge, ...styles.badgeTerminado };
+      case 'entregado':
+        return { ...styles.badge, ...styles.badgeEntregado };
+      default:
+        return { ...styles.badge, ...styles.badgePendiente };
+    }
+  };
+
+  const getEstadoText = (estado: string) => {
+    switch (estado) {
+      case 'pendiente': return 'Pendiente';
+      case 'produccion': return 'En Producción';
+      case 'terminado': return 'Terminado';
+      case 'entregado': return 'Entregado';
+      default: return estado;
+    }
+  };
+
+  const handleResultadoClick = (tipo: string, item: any) => {
+    if (tipo === 'paciente' || tipo === 'trabajo') {
+      onNavigate('trabajos-proceso');
+    } else if (tipo === 'clinica') {
+      onNavigate('clinicas');
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Dashboard - DentalFlow Manager</h1>
+        <p style={styles.subtitle}>Sistema de gestión para laboratorio dental</p>
+
+        {/* 🔍 BUSCADOR GLOBAL */}
+        <div style={styles.searchContainer}>
+          <div style={styles.searchIcon}>🔍</div>
+          <input
+            type="text"
+            style={styles.searchInput}
+            placeholder="Buscar pacientes, clínicas, trabajos, servicios..."
+            value={terminoBusqueda}
+            onChange={(e) => handleBuscar(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* MOSTRAR RESULTADOS DE BÚSQUEDA SI HAY TÉRMINO */}
+      {terminoBusqueda.trim() && (
+        <div style={styles.resultadosContainer}>
+          <h3 style={{ marginBottom: '1rem', color: '#1e293b' }}>
+            Resultados para: "{terminoBusqueda}"
+          </h3>
+
+          {/* Resultados de Pacientes */}
+          {resultados.pacientes.length > 0 && (
+            <div style={styles.resultadoSection}>
+              <h4 style={styles.resultadoTitle}>👤 Pacientes ({resultados.pacientes.length})</h4>
+              {resultados.pacientes.map((paciente, index) => (
+                <div
+                  key={`paciente-${index}`}
+                  style={{
+                    ...styles.resultadoItem,
+                    ...(hoveredResultado === `paciente-${index}` ? styles.resultadoItemHover : {})
+                  }}
+                  onMouseEnter={() => setHoveredResultado(`paciente-${index}`)}
+                  onMouseLeave={() => setHoveredResultado(null)}
+                  onClick={() => handleResultadoClick('paciente', paciente)}
+                >
+                  <div>
+                    <strong>{paciente.paciente}</strong>
+                    <span style={getBadgeStyle(paciente.estado)}>
+                      {getEstadoText(paciente.estado)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    {paciente.clinica} • {paciente.dentista}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    {paciente.servicios.length} servicio(s) • ${paciente.precioTotal}
+                    {paciente.laboratorista && ` • 👨‍🔧 ${paciente.laboratorista}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Resultados de Clínicas */}
+          {resultados.clinicas.length > 0 && (
+            <div style={styles.resultadoSection}>
+              <h4 style={styles.resultadoTitle}>🏥 Clínicas ({resultados.clinicas.length})</h4>
+              {resultados.clinicas.map((clinica, index) => (
+                <div
+                  key={`clinica-${index}`}
+                  style={{
+                    ...styles.resultadoItem,
+                    ...(hoveredResultado === `clinica-${index}` ? styles.resultadoItemHover : {})
+                  }}
+                  onMouseEnter={() => setHoveredResultado(`clinica-${index}`)}
+                  onMouseLeave={() => setHoveredResultado(null)}
+                  onClick={() => handleResultadoClick('clinica', clinica)}
+                >
+                  <div>
+                    <strong>{clinica.nombre}</strong>
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    {clinica.direccion}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    {clinica.telefono} • {clinica.email}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Resultados de Trabajos */}
+          {resultados.trabajos.length > 0 && (
+            <div style={styles.resultadoSection}>
+              <h4 style={styles.resultadoTitle}>🔧 Trabajos ({resultados.trabajos.length})</h4>
+              {resultados.trabajos.map((trabajo, index) => (
+                <div
+                  key={`trabajo-${index}`}
+                  style={{
+                    ...styles.resultadoItem,
+                    ...(hoveredResultado === `trabajo-${index}` ? styles.resultadoItemHover : {})
+                  }}
+                  onMouseEnter={() => setHoveredResultado(`trabajo-${index}`)}
+                  onMouseLeave={() => setHoveredResultado(null)}
+                  onClick={() => handleResultadoClick('trabajo', trabajo)}
+                >
+                  <div>
+                    <strong>{trabajo.paciente}</strong>
+                    <span style={getBadgeStyle(trabajo.estado)}>
+                      {getEstadoText(trabajo.estado)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    {trabajo.clinica} • {trabajo.dentista}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    Laboratorista: {trabajo.laboratorista || 'No asignado'} • ${trabajo.precioTotal}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Mensaje cuando no hay resultados */}
+          {resultados.pacientes.length === 0 && 
+           resultados.clinicas.length === 0 && 
+           resultados.trabajos.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+              No se encontraron resultados para "{terminoBusqueda}"
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MÓDULOS DEL SISTEMA (solo se muestran cuando no hay búsqueda activa) */}
+      {!terminoBusqueda.trim() && (
+        <>
+          <div style={styles.grid}>
+            {modules.map(module => (
+              <div
+                key={module.id}
+                style={{
+                  ...styles.card,
+                  borderLeft: `4px solid ${module.color}`,
+                  ...(hoveredCard === module.id ? styles.cardHover : {})
+                }}
+                onMouseEnter={() => setHoveredCard(module.id)}
+                onMouseLeave={() => setHoveredCard(null)}
+                onClick={() => onNavigate(module.id)}
+              >
+                <h3 style={styles.cardTitle}>{module.title}</h3>
+                <p style={styles.cardContent}>{module.description}</p>
+                <button 
+                  style={{
+                    ...styles.button,
+                    backgroundColor: module.color
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigate(module.id);
+                  }}
+                >
+                  {module.id === 'clinicas' && 'Gestionar Clínicas'}
+                  {module.id === 'crear-trabajo' && 'Crear Trabajo'}
+                  {module.id === 'trabajos-proceso' && 'Ver Trabajos'}
+                  {module.id === 'laboratoristas' && 'Gestionar Técnicos'} {/* ⭐ NUEVO BOTÓN */}
+                  {module.id === 'precios' && 'Gestionar Precios'}
+                  {module.id === 'reportes' && 'Ver Reportes'}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+            <button 
+              style={styles.logoutButton}
+              onClick={() => {
+                if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                  onLogout();
+                }
+              }}
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;
+--
+ Laboratoristas.tsx
+import React, { useState } from 'react';
+import { Laboratorista, laboratoristas, agregarLaboratorista, actualizarLaboratorista, eliminarLaboratorista, toggleActivoLaboratorista } from '../data/database';
+
+interface LaboratoristasProps {
+  onBack: () => void;
+}
+
+const Laboratoristas: React.FC<LaboratoristasProps> = ({ onBack }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [currentLaboratorista, setCurrentLaboratorista] = useState<Laboratorista | null>(null);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    especialidad: '',
+    telefono: '',
+    email: ''
+  });
+
+  const styles = {
+    container: {
+      padding: '20px',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '2rem'
+    },
+    title: {
+      color: '#1e293b',
+      fontSize: '1.5rem',
+      fontWeight: 'bold'
+    },
+    button: {
+      backgroundColor: '#f97316',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    },
+    backButton: {
+      backgroundColor: '#64748b',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginRight: '0.5rem'
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '1.5rem'
+    },
+    card: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      borderLeft: '4px solid #f97316',
+      position: 'relative' as const
+    },
+    cardTitle: {
+      color: '#1e293b',
+      fontSize: '1.125rem',
+      fontWeight: '600',
+      margin: '0 0 1rem 0'
+    },
+    statusBadge: {
+      position: 'absolute' as const,
+      top: '1rem',
+      right: '1rem',
+      padding: '0.25rem 0.5rem',
+      borderRadius: '0.25rem',
+      fontSize: '0.75rem',
+      fontWeight: '600'
+    },
+    activeBadge: {
+      backgroundColor: '#d1fae5',
+      color: '#065f46'
+    },
+    inactiveBadge: {
+      backgroundColor: '#fef3c7',
+      color: '#92400e'
+    },
+    form: {
+      backgroundColor: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      marginBottom: '2rem'
+    },
+    formGroup: {
+      marginBottom: '1rem'
+    },
+    label: {
+      display: 'block',
+      color: '#1e293b',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      marginBottom: '0.5rem'
+    },
+    input: {
+      width: '100%',
+      padding: '0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      boxSizing: 'border-box' as const
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginTop: '1rem'
+    },
+    deleteButton: {
+      backgroundColor: '#dc2626',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    },
+    toggleButton: {
+      backgroundColor: '#06b6d4',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    }
+  };
+
+  const especialidades = [
+    'Prótesis Fija',
+    'Prótesis Removible',
+    'Implantes',
+    'Ortodoncia',
+    'Cerámica Dental',
+    'Modelación',
+    'Acrílicos',
+    'CoCr',
+    'Zirconio',
+    'General'
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (currentLaboratorista) {
+      // Editar laboratorista existente
+      actualizarLaboratorista(currentLaboratorista.id, formData);
+      alert('Laboratorista actualizado exitosamente');
+    } else {
+      // Crear nuevo laboratorista
+      agregarLaboratorista({
+        ...formData,
+        activo: true
+      });
+      alert('Laboratorista agregado exitosamente');
+    }
+    
+    setShowForm(false);
+    setFormData({ nombre: '', especialidad: '', telefono: '', email: '' });
+    setCurrentLaboratorista(null);
+  };
+
+  const handleEdit = (laboratorista: Laboratorista) => {
+    setCurrentLaboratorista(laboratorista);
+    setFormData({
+      nombre: laboratorista.nombre,
+      especialidad: laboratorista.especialidad,
+      telefono: laboratorista.telefono,
+      email: laboratorista.email
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este laboratorista?')) {
+      eliminarLaboratorista(id);
+      alert('Laboratorista eliminado exitosamente');
+    }
+  };
+
+  const handleToggleActivo = (id: string) => {
+    toggleActivoLaboratorista(id);
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div>
+          <button style={styles.backButton} onClick={onBack}>
+            ← Volver al Dashboard
+          </button>
+          <h1 style={styles.title}>👨‍🔧 Gestión de Laboratoristas</h1>
+        </div>
+        <button 
+          style={styles.button}
+          onClick={() => {
+            setCurrentLaboratorista(null);
+            setFormData({ nombre: '', especialidad: '', telefono: '', email: '' });
+            setShowForm(!showForm);
+          }}
+        >
+          {showForm ? 'Cancelar' : '+ Agregar Laboratorista'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form style={styles.form} onSubmit={handleSubmit}>
+          <h3 style={{margin: '0 0 1rem 0', color: '#1e293b'}}>
+            {currentLaboratorista ? 'Editar Laboratorista' : 'Nuevo Laboratorista'}
+          </h3>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Nombre Completo *</label>
+            <input
+              type="text"
+              style={styles.input}
+              value={formData.nombre}
+              onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+              placeholder="Ej: Carlos Rodríguez"
+              required
+            />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Especialidad *</label>
+            <select 
+              style={styles.input}
+              value={formData.especialidad}
+              onChange={(e) => setFormData({...formData, especialidad: e.target.value})}
+              required
+            >
+              <option value="">Selecciona una especialidad</option>
+              {especialidades.map(especialidad => (
+                <option key={especialidad} value={especialidad}>
+                  {especialidad}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Teléfono</label>
+            <input
+              type="tel"
+              style={styles.input}
+              value={formData.telefono}
+              onChange={(e) => setFormData({...formData, telefono: e.target.value})}
+              placeholder="Ej: 555-0101"
+            />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Email</label>
+            <input
+              type="email"
+              style={styles.input}
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              placeholder="Ej: tecnico@laboratorio.com"
+            />
+          </div>
+
+          <button type="submit" style={styles.button}>
+            {currentLaboratorista ? 'Actualizar' : 'Guardar'} Laboratorista
+          </button>
+        </form>
+      )}
+
+      <div style={styles.grid}>
+        {laboratoristas.map(laboratorista => (
+          <div key={laboratorista.id} style={styles.card}>
+            <div style={{
+              ...styles.statusBadge,
+              ...(laboratorista.activo ? styles.activeBadge : styles.inactiveBadge)
+            }}>
+              {laboratorista.activo ? '🟢 Activo' : '🟡 Inactivo'}
+            </div>
+            
+            <h3 style={styles.cardTitle}>{laboratorista.nombre}</h3>
+            <p><strong>🎯 Especialidad:</strong> {laboratorista.especialidad}</p>
+            <p><strong>📞 Teléfono:</strong> {laboratorista.telefono}</p>
+            <p><strong>✉️ Email:</strong> {laboratorista.email}</p>
+            
+            <div style={styles.buttonGroup}>
+              <button 
+                style={styles.toggleButton}
+                onClick={() => handleToggleActivo(laboratorista.id)}
+              >
+                {laboratorista.activo ? 'Desactivar' : 'Activar'}
+              </button>
+              
+              <button 
+                style={styles.button}
+                onClick={() => handleEdit(laboratorista)}
+              >
+                Editar
+              </button>
+              
+              <button 
+                style={styles.deleteButton}
+                onClick={() => handleDelete(laboratorista.id)}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {laboratoristas.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem',
+          color: '#64748b'
+        }}>
+          <h3>No hay laboratoristas registrados</h3>
+          <p>Comienza agregando tu primer laboratorista usando el botón "Agregar Laboratorista"</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Laboratoristas;
+--
+
+ ListaPrecios.tsx
+import React, { useState } from 'react';
+import { Servicio, servicios, categorias, agregarServicio, actualizarServicio, eliminarServicio, toggleActivoServicio } from '../data/database';
+
+interface ListaPreciosProps {
+  onBack: () => void;
+}
+
+const ListaPrecios: React.FC<ListaPreciosProps> = ({ onBack }) => {
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [servicioEditando, setServicioEditando] = useState<Servicio | null>(null);
+  const [filtroCategoria, setFiltroCategoria] = useState<string>('todos');
+  const [formData, setFormData] = useState({
+    categoria: 'fija',
+    nombre: '',
+    precioBase: 0
+  });
+
+  const styles = {
+    container: {
+      padding: '20px',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '2rem'
+    },
+    title: {
+      color: '#1e293b',
+      fontSize: '1.5rem',
+      fontWeight: 'bold'
+    },
+    backButton: {
+      backgroundColor: '#64748b',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginRight: '0.5rem'
+    },
+    button: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    },
+    buttonSuccess: {
+      backgroundColor: '#10b981',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    },
+    buttonDanger: {
+      backgroundColor: '#dc2626',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer'
+    },
+    filters: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginBottom: '2rem',
+      flexWrap: 'wrap' as const
+    },
+    filterButton: {
+      padding: '0.5rem 1rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      backgroundColor: 'white',
+      transition: 'all 0.2s'
+    },
+    filterButtonActive: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      borderColor: '#2563eb'
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '1.5rem'
+    },
+    card: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      borderLeft: '4px solid #2563eb',
+      opacity: 1,
+      transition: 'all 0.2s'
+    },
+    cardInactiva: {
+      opacity: 0.6,
+      backgroundColor: '#f8fafc'
+    },
+    cardHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '1rem'
+    },
+    servicioNombre: {
+      color: '#1e293b',
+      fontSize: '1.125rem',
+      fontWeight: '600',
+      margin: 0
+    },
+    categoriaBadge: {
+      padding: '0.25rem 0.75rem',
+      borderRadius: '1rem',
+      fontSize: '0.75rem',
+      fontWeight: '500',
+      backgroundColor: '#e0f2fe',
+      color: '#0369a1'
+    },
+    precio: {
+      color: '#2563eb',
+      fontSize: '1.25rem',
+      fontWeight: 'bold',
+      margin: '0.5rem 0'
+    },
+    estadoBadge: {
+      padding: '0.25rem 0.5rem',
+      borderRadius: '0.25rem',
+      fontSize: '0.75rem',
+      fontWeight: '500'
+    },
+    estadoActivo: {
+      backgroundColor: '#dcfce7',
+      color: '#166534'
+    },
+    estadoInactivo: {
+      backgroundColor: '#fef2f2',
+      color: '#991b1b'
+    },
+    actions: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginTop: '1rem',
+      flexWrap: 'wrap' as const
+    },
+    formContainer: {
+      backgroundColor: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      marginBottom: '2rem'
+    },
+    formGroup: {
+      marginBottom: '1.5rem'
+    },
+    label: {
+      display: 'block',
+      color: '#1e293b',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      marginBottom: '0.5rem'
+    },
+    input: {
+      width: '100%',
+      padding: '0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      boxSizing: 'border-box' as const
+    },
+    select: {
+      width: '100%',
+      padding: '0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      backgroundColor: 'white'
+    },
+    stats: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '1rem',
+      marginBottom: '2rem'
+    },
+    statCard: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      textAlign: 'center' as const
+    },
+    statNumber: {
+      fontSize: '2rem',
+      fontWeight: 'bold',
+      color: '#2563eb',
+      margin: '0.5rem 0'
+    },
+    statLabel: {
+      color: '#64748b',
+      fontSize: '0.875rem'
+    }
+  };
+
+  const serviciosFiltrados = filtroCategoria === 'todos' 
+    ? servicios 
+    : servicios.filter(s => s.categoria === filtroCategoria);
+
+  const serviciosActivos = servicios.filter(s => s.activo);
+  const serviciosInactivos = servicios.filter(s => !s.activo);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (servicioEditando) {
+      // Editar servicio existente
+      actualizarServicio(servicioEditando.id, formData);
+      alert('Servicio actualizado exitosamente');
+    } else {
+      // Crear nuevo servicio
+      agregarServicio({
+        ...formData,
+        activo: true
+      });
+      alert('Servicio creado exitosamente');
+    }
+    
+    setMostrarFormulario(false);
+    setServicioEditando(null);
+    setFormData({ categoria: 'fija', nombre: '', precioBase: 0 });
+  };
+
+  const handleEditar = (servicio: Servicio) => {
+    setServicioEditando(servicio);
+    setFormData({
+      categoria: servicio.categoria,
+      nombre: servicio.nombre,
+      precioBase: servicio.precioBase
+    });
+    setMostrarFormulario(true);
+  };
+
+  const handleEliminar = (servicio: Servicio) => {
+    if (window.confirm(`¿Estás seguro de que quieres eliminar el servicio "${servicio.nombre}"?`)) {
+      eliminarServicio(servicio.id);
+      alert('Servicio eliminado exitosamente');
+    }
+  };
+
+  const handleToggleActivo = (servicio: Servicio) => {
+    toggleActivoServicio(servicio.id);
+  };
+
+  const handleCancelar = () => {
+    setMostrarFormulario(false);
+    setServicioEditando(null);
+    setFormData({ categoria: 'fija', nombre: '', precioBase: 0 });
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div>
+          <button style={styles.backButton} onClick={onBack}>
+            ← Volver al Dashboard
+          </button>
+          <h1 style={styles.title}>💰 Lista de Precios</h1>
+        </div>
+        <button 
+          style={styles.button}
+          onClick={() => {
+            setServicioEditando(null);
+            setFormData({ categoria: 'fija', nombre: '', precioBase: 0 });
+            setMostrarFormulario(true);
+          }}
+        >
+          + Agregar Servicio
+        </button>
+      </div>
+
+      {/* Estadísticas */}
+      <div style={styles.stats}>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>Total Servicios</div>
+          <div style={styles.statNumber}>{servicios.length}</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>Servicios Activos</div>
+          <div style={{...styles.statNumber, color: '#10b981'}}>{serviciosActivos.length}</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>Servicios Inactivos</div>
+          <div style={{...styles.statNumber, color: '#dc2626'}}>{serviciosInactivos.length}</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>Categorías</div>
+          <div style={{...styles.statNumber, color: '#8b5cf6'}}>{Object.keys(categorias).length}</div>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div style={styles.filters}>
+        <button
+          style={{
+            ...styles.filterButton,
+            ...(filtroCategoria === 'todos' ? styles.filterButtonActive : {})
+          }}
+          onClick={() => setFiltroCategoria('todos')}
+        >
+          📋 Todos ({servicios.length})
+        </button>
+        {Object.entries(categorias).map(([key, nombre]) => (
+          <button
+            key={key}
+            style={{
+              ...styles.filterButton,
+              ...(filtroCategoria === key ? styles.filterButtonActive : {})
+            }}
+            onClick={() => setFiltroCategoria(key)}
+          >
+            {nombre} ({servicios.filter(s => s.categoria === key).length})
+          </button>
+        ))}
+      </div>
+
+      {/* Formulario */}
+      {mostrarFormulario && (
+        <div style={styles.formContainer}>
+          <h3 style={{marginBottom: '1.5rem', color: '#1e293b'}}>
+            {servicioEditando ? 'Editar Servicio' : 'Nuevo Servicio'}
+          </h3>
+          
+          <form onSubmit={handleSubmit}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Categoría *</label>
+              <select 
+                style={styles.select}
+                value={formData.categoria}
+                onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+                required
+              >
+                {Object.entries(categorias).map(([key, nombre]) => (
+                  <option key={key} value={key}>{nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Nombre del Servicio *</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={formData.nombre}
+                onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                placeholder="Ej: Corona de Zirconio Personalizada"
+                required
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Precio Base ($) *</label>
+              <input
+                type="number"
+                style={styles.input}
+                value={formData.precioBase}
+                onChange={(e) => setFormData({...formData, precioBase: parseInt(e.target.value) || 0})}
+                min="0"
+                required
+              />
+            </div>
+
+            <div style={{display: 'flex', gap: '0.5rem'}}>
+              <button type="submit" style={styles.buttonSuccess}>
+                {servicioEditando ? 'Actualizar' : 'Crear'} Servicio
+              </button>
+              <button type="button" style={styles.buttonDanger} onClick={handleCancelar}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Lista de Servicios */}
+      <div style={styles.grid}>
+        {serviciosFiltrados.map(servicio => (
+          <div
+            key={servicio.id}
+            style={{
+              ...styles.card,
+              ...(!servicio.activo ? styles.cardInactiva : {})
+            }}
+          >
+            <div style={styles.cardHeader}>
+              <h3 style={styles.servicioNombre}>{servicio.nombre}</h3>
+              <span style={styles.categoriaBadge}>
+                {categorias[servicio.categoria as keyof typeof categorias]}
+              </span>
+            </div>
+
+            <div style={styles.precio}>${servicio.precioBase}</div>
+
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <span style={{
+                ...styles.estadoBadge,
+                ...(servicio.activo ? styles.estadoActivo : styles.estadoInactivo)
+              }}>
+                {servicio.activo ? '✅ Activo' : '❌ Inactivo'}
+              </span>
+              
+              <small style={{color: '#64748b'}}>
+                ID: {servicio.id}
+              </small>
+            </div>
+
+            <div style={styles.actions}>
+              <button
+                style={{
+                  ...styles.button,
+                  backgroundColor: servicio.activo ? '#f59e0b' : '#10b981',
+                  padding: '0.375rem 0.75rem',
+                  fontSize: '0.75rem'
+                }}
+                onClick={() => handleToggleActivo(servicio)}
+              >
+                {servicio.activo ? '❌ Desactivar' : '✅ Activar'}
+              </button>
+              
+              <button
+                style={{
+                  ...styles.button,
+                  backgroundColor: '#8b5cf6',
+                  padding: '0.375rem 0.75rem',
+                  fontSize: '0.75rem'
+                }}
+                onClick={() => handleEditar(servicio)}
+              >
+                ✏️ Editar
+              </button>
+              
+              <button
+                style={{
+                  ...styles.buttonDanger,
+                  padding: '0.375rem 0.75rem',
+                  fontSize: '0.75rem'
+                }}
+                onClick={() => handleEliminar(servicio)}
+              >
+                🗑️ Eliminar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {serviciosFiltrados.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem',
+          color: '#64748b'
+        }}>
+          <h3>No hay servicios {filtroCategoria !== 'todos' ? `en la categoría "${categorias[filtroCategoria as keyof typeof categorias]}"` : 'registrados'}</h3>
+          <p>Comienza agregando tu primer servicio usando el botón "Agregar Servicio"</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ListaPrecios;
+
+--
+ Login.tsx
+import React, { useState } from 'react';
+
+// Base de datos temporal de usuarios
+const users = [
+  { username: 'admin', password: 'admin123', name: 'Administrador' },
+  { username: 'tecnico', password: 'tecnico123', name: 'Técnico Dental' },
+  { username: 'erick', password: 'dental2024', name: 'Erick' }
+];
+
+interface LoginProps {
+  onLogin: (user: any) => void;
+}
+
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    // Verificar credenciales
+    const user = users.find(u => u.username === username && u.password === password);
+    
+    if (user) {
+      console.log('✅ Login exitoso:', user.name);
+      onLogin(user); // Redirigir al dashboard
+    } else {
+      setError('Usuario o contraseña incorrectos');
+      console.log('❌ Login fallido');
+    }
+  };
+
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #2563eb, #06b6d4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    },
+    form: {
+      background: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      width: '100%',
+      maxWidth: '384px'
+    },
+    header: {
+      textAlign: 'center' as const,
+      marginBottom: '2rem'
+    },
+    title: {
+      color: '#2563eb',
+      fontSize: '1.875rem',
+      fontWeight: 'bold',
+      margin: 0
+    },
+    subtitle: {
+      color: '#1e293b',
+      marginTop: '0.5rem'
+    },
+    error: {
+      color: '#dc2626',
+      fontSize: '0.875rem',
+      textAlign: 'center' as const,
+      marginBottom: '1rem',
+      padding: '0.5rem',
+      backgroundColor: '#fef2f2',
+      borderRadius: '0.375rem'
+    },
+    formGroup: {
+      marginBottom: '1rem'
+    },
+    label: {
+      display: 'block',
+      color: '#1e293b',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      marginBottom: '0.5rem'
+    },
+    input: {
+      width: '100%',
+      padding: '0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      boxSizing: 'border-box' as const
+    },
+    inputError: {
+      borderColor: '#dc2626'
+    },
+    inputFocus: {
+      outline: 'none',
+      borderColor: '#2563eb',
+      boxShadow: '0 0 0 2px rgba(37, 99, 235, 0.2)'
+    },
+    button: {
+      width: '100%',
+      backgroundColor: '#2563eb',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      fontSize: '1rem',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s'
+    },
+    buttonHover: {
+      backgroundColor: '#1d4ed8'
+    },
+    usersInfo: {
+      marginTop: '1.5rem',
+      padding: '1rem',
+      backgroundColor: '#f8fafc',
+      borderRadius: '0.375rem',
+      fontSize: '0.75rem',
+      color: '#64748b'
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.form}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>DentalFlow Manager</h1>
+          <p style={styles.subtitle}>Sistema de Gestión Dental</p>
+        </div>
+        
+        {error && <div style={styles.error}>{error}</div>}
+        
+        <form onSubmit={handleLogin}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Usuario</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              style={{...styles.input, ...(error ? styles.inputError : {})}}
+              placeholder="Ingresa tu usuario"
+              onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+              onBlur={(e) => e.target.style.boxShadow = ''}
+            />
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{...styles.input, ...(error ? styles.inputError : {})}}
+              placeholder="Ingresa tu contraseña"
+              onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
+              onBlur={(e) => e.target.style.boxShadow = ''}
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            style={styles.button}
+            onMouseOver={(e) => Object.assign(e.currentTarget.style, styles.buttonHover)}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+          >
+            Iniciar Sesión
+          </button>
+        </form>
+
+        {/* Información de usuarios de prueba */}
+        <div style={styles.usersInfo}>
+          <strong>Usuarios de prueba:</strong>
+          <br />👑 admin / admin123
+          <br />🔧 tecnico / tecnico123  
+          <br />👤 erick / dental2024
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+----
+
+----
+ TrabajosProceso.tsx
+import React, { useState } from 'react';
+import { Trabajo, trabajos, clinicas, dentistas, servicios } from '../data/database';
+
+interface TrabajosProcesoProps {
+  onBack: () => void;
+}
+
+// Componente para cada item de servicio en la lista de búsqueda
+const ItemServicio: React.FC<{
+  servicio: any;
+  seleccionado: boolean;
+  onSeleccionar: (id: string) => void;
+}> = ({ servicio, seleccionado, onSeleccionar }) => {
+  const [hovered, setHovered] = useState(false);
+
+  const styles = {
+    itemServicio: {
+      padding: '0.5rem 0.75rem',
+      cursor: 'pointer',
+      borderBottom: '1px solid #f3f4f6',
+      fontSize: '0.875rem',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    itemServicioHover: {
+      backgroundColor: '#f0f9ff'
+    },
+    itemServicioSeleccionado: {
+      backgroundColor: '#dbeafe',
+      fontWeight: '600'
+    },
+    precioServicio: {
+      color: '#2563eb',
+      fontWeight: 'bold',
+      fontSize: '0.75rem'
+    }
+  };
+
+  return (
+    <div
+      style={{
+        ...styles.itemServicio,
+        ...(hovered ? styles.itemServicioHover : {}),
+        ...(seleccionado ? styles.itemServicioSeleccionado : {})
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => onSeleccionar(servicio.id)}
+    >
+      <div>
+        <div style={{ fontWeight: seleccionado ? '600' : '400' }}>
+          {servicio.nombre}
+        </div>
+        <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+          {servicio.categoria}
+        </div>
+      </div>
+      <span style={styles.precioServicio}>
+        ${servicio.precioBase}
+      </span>
+    </div>
+  );
+};
+
+const TrabajosProceso: React.FC<TrabajosProcesoProps> = ({ onBack }) => {
+  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
+  const [actualizador, setActualizador] = useState(0);
+  const [clinicaExpandida, setClinicaExpandida] = useState<string | null>(null);
+  const [modoEdicion, setModoEdicion] = useState<string | null>(null);
+  const [nuevoPaciente, setNuevoPaciente] = useState({
+    nombre: '',
+    servicioId: '',
+    cantidad: 1,
+    piezaDental: ''
+  });
+  const [busquedaServicio, setBusquedaServicio] = useState('');
+
+  const styles = {
+    container: {
+      padding: '20px',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '2rem'
+    },
+    title: {
+      color: '#1e293b',
+      fontSize: '1.5rem',
+      fontWeight: 'bold'
+    },
+    backButton: {
+      backgroundColor: '#64748b',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      marginRight: '0.5rem'
+    },
+    filtros: {
+      display: 'flex',
+      gap: '1rem',
+      marginBottom: '2rem',
+      flexWrap: 'wrap' as const
+    },
+    botonFiltro: {
+      padding: '0.5rem 1rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      backgroundColor: 'white',
+      color: '#374151'
+    },
+    botonFiltroActivo: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      borderColor: '#2563eb'
+    },
+    cardClinica: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      marginBottom: '1.5rem',
+      borderLeft: '4px solid #2563eb'
+    },
+    headerClinica: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '1rem',
+      cursor: 'pointer'
+    },
+    nombreClinica: {
+      fontSize: '1.25rem',
+      fontWeight: 'bold',
+      color: '#1e293b',
+      margin: 0
+    },
+    resumenClinica: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '1rem',
+      marginBottom: '1rem',
+      padding: '1rem',
+      backgroundColor: '#f8fafc',
+      borderRadius: '0.5rem'
+    },
+    resumenItem: {
+      textAlign: 'center' as const
+    },
+    resumenNumero: {
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      color: '#2563eb'
+    },
+    resumenLabel: {
+      fontSize: '0.875rem',
+      color: '#64748b'
+    },
+    listaPacientes: {
+      marginTop: '1rem'
+    },
+    pacienteItem: {
+      padding: '1rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '0.5rem',
+      marginBottom: '0.5rem',
+      backgroundColor: '#f8fafc'
+    },
+    headerPaciente: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '0.5rem'
+    },
+    nombrePaciente: {
+      fontWeight: 'bold',
+      color: '#1e293b'
+    },
+    estado: {
+      padding: '0.25rem 0.75rem',
+      borderRadius: '1rem',
+      fontSize: '0.75rem',
+      fontWeight: '600'
+    },
+    estadoPendiente: {
+      backgroundColor: '#fef3c7',
+      color: '#92400e'
+    },
+    estadoProduccion: {
+      backgroundColor: '#dbeafe',
+      color: '#1e40af'
+    },
+    estadoTerminado: {
+      backgroundColor: '#d1fae5',
+      color: '#065f46'
+    },
+    estadoEntregado: {
+      backgroundColor: '#e5e7eb',
+      color: '#374151'
+    },
+    serviciosList: {
+      margin: '0.5rem 0',
+      padding: '0',
+      listStyle: 'none'
+    },
+    servicioItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      padding: '0.25rem 0',
+      fontSize: '0.875rem'
+    },
+    acciones: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginTop: '0.5rem',
+      flexWrap: 'wrap' as const
+    },
+    button: {
+      padding: '0.25rem 0.75rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      fontSize: '0.75rem'
+    },
+    buttonPrimary: {
+      backgroundColor: '#2563eb',
+      color: 'white'
+    },
+    buttonSuccess: {
+      backgroundColor: '#10b981',
+      color: 'white'
+    },
+    buttonWarning: {
+      backgroundColor: '#f59e0b',
+      color: 'white'
+    },
+    buttonSecondary: {
+      backgroundColor: '#64748b',
+      color: 'white'
+    },
+    formAgregarPaciente: {
+      padding: '1rem',
+      border: '1px dashed #d1d5db',
+      borderRadius: '0.5rem',
+      marginTop: '1rem',
+      backgroundColor: '#f0f9ff'
+    },
+    formGroup: {
+      marginBottom: '0.5rem'
+    },
+    label: {
+      display: 'block',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      marginBottom: '0.25rem',
+      color: '#374151'
+    },
+    input: {
+      width: '100%',
+      padding: '0.375rem 0.5rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '0.875rem'
+    },
+    select: {
+      width: '100%',
+      padding: '0.375rem 0.5rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '0.875rem',
+      backgroundColor: 'white'
+    },
+    totalClinica: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: '1rem',
+      paddingTop: '1rem',
+      borderTop: '2px solid #e2e8f0',
+      fontWeight: 'bold',
+      color: '#1e293b'
+    },
+    accionesClinica: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginTop: '1rem',
+      justifyContent: 'flex-end'
+    },
+    vacio: {
+      textAlign: 'center' as const,
+      padding: '3rem',
+      color: '#64748b'
+    },
+    // Nuevos estilos para el buscador
+    buscadorContainer: {
+      position: 'relative' as const,
+      marginBottom: '0.5rem'
+    },
+    inputBuscador: {
+      width: '100%',
+      padding: '0.5rem 2.5rem 0.5rem 0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '0.875rem',
+      backgroundColor: 'white'
+    },
+    iconoBusqueda: {
+      position: 'absolute' as const,
+      right: '0.75rem',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: '#6b7280'
+    },
+    listaServicios: {
+      maxHeight: '200px',
+      overflowY: 'auto' as const,
+      border: '1px solid #e5e7eb',
+      borderRadius: '0.375rem',
+      backgroundColor: 'white',
+      marginTop: '0.25rem'
+    },
+    sinResultados: {
+      padding: '1rem',
+      textAlign: 'center' as const,
+      color: '#6b7280',
+      fontSize: '0.875rem'
+    }
+  };
+
+  // Filtrar servicios según la búsqueda
+  const serviciosFiltrados = servicios.filter(servicio =>
+    servicio.nombre.toLowerCase().includes(busquedaServicio.toLowerCase()) ||
+    servicio.categoria.toLowerCase().includes(busquedaServicio.toLowerCase())
+  );
+
+  // Agrupar trabajos por clínica
+  const trabajosPorClinica = trabajos.reduce((acc, trabajo) => {
+    if (!acc[trabajo.clinicaId]) {
+      acc[trabajo.clinicaId] = [];
+    }
+    acc[trabajo.clinicaId].push(trabajo);
+    return acc;
+  }, {} as Record<string, Trabajo[]>);
+
+  // Filtrar por estado
+  const clinicasFiltradas = Object.entries(trabajosPorClinica)
+    .filter(([clinicaId, trabajosClinica]) => {
+      if (filtroEstado === 'todos') return true;
+      return trabajosClinica.some(t => t.estado === filtroEstado);
+    })
+    .map(([clinicaId, trabajosClinica]) => ({
+      clinicaId,
+      clinica: clinicas.find(c => c.id === clinicaId)!,
+      trabajos: trabajosClinica.filter(t => 
+        filtroEstado === 'todos' || t.estado === filtroEstado
+      )
+    }));
+
+  // Obtener nombre de dentista
+  const obtenerNombreDentista = (dentistaId: string) => {
+    const dentista = dentistas.find(d => d.id === dentistaId);
+    return dentista ? dentista.nombre : 'Dentista no encontrado';
+  };
+
+  // Obtener nombre de servicio
+  const obtenerNombreServicio = (servicioId: string) => {
+    const servicio = servicios.find(s => s.id === servicioId);
+    return servicio ? servicio.nombre : 'Servicio no encontrado';
+  };
+
+  // Cambiar estado de un trabajo
+  const cambiarEstado = (trabajoId: string, nuevoEstado: 'pendiente' | 'produccion' | 'terminado' | 'entregado') => {
+    const trabajoIndex = trabajos.findIndex(t => t.id === trabajoId);
+    
+    if (trabajoIndex !== -1) {
+      trabajos[trabajoIndex].estado = nuevoEstado;
+      setActualizador(prev => prev + 1);
+      
+      let mensaje = '';
+      switch (nuevoEstado) {
+        case 'produccion': mensaje = '✅ Producción iniciada'; break;
+        case 'terminado': mensaje = '🎉 Trabajo terminado'; break;
+        case 'entregado': mensaje = '📦 Trabajo entregado'; break;
+        case 'pendiente': mensaje = '🔄 Trabajo reabierto'; break;
+      }
+      alert(mensaje);
+    }
+  };
+
+  // Seleccionar servicio desde la lista de búsqueda
+  const seleccionarServicio = (servicioId: string) => {
+    setNuevoPaciente({ ...nuevoPaciente, servicioId });
+    setBusquedaServicio(''); // Limpiar búsqueda después de seleccionar
+  };
+
+  // Agregar paciente a clínica
+  const agregarPacienteAClinica = (clinicaId: string) => {
+    if (!nuevoPaciente.nombre || !nuevoPaciente.servicioId) {
+      alert('Por favor completa el nombre del paciente y selecciona un servicio');
+      return;
+    }
+
+    const servicio = servicios.find(s => s.id === nuevoPaciente.servicioId);
+    if (!servicio) return;
+
+    const nuevoTrabajo: Trabajo = {
+      id: Date.now().toString(),
+      clinicaId,
+      dentistaId: dentistas.find(d => d.clinicaId === clinicaId)?.id || '',
+      paciente: nuevoPaciente.nombre,
+      servicios: [{
+        servicioId: nuevoPaciente.servicioId,
+        cantidad: nuevoPaciente.cantidad,
+        precioUnitario: servicio.precioBase
+      }],
+      fechaRecibido: new Date().toISOString().split('T')[0],
+      fechaEntrega: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      estado: 'pendiente',
+      precioTotal: servicio.precioBase * nuevoPaciente.cantidad,
+      observaciones: nuevoPaciente.piezaDental ? `Pieza dental: ${nuevoPaciente.piezaDental}` : ''
+    };
+
+    trabajos.push(nuevoTrabajo);
+    setActualizador(prev => prev + 1);
+    setNuevoPaciente({ nombre: '', servicioId: '', cantidad: 1, piezaDental: '' });
+    setModoEdicion(null);
+    setBusquedaServicio('');
+    
+    alert(`✅ Paciente "${nuevoPaciente.nombre}" agregado a la clínica`);
+  };
+
+  // Generar reporte mensual por clínica
+  const generarReporteMensual = (clinicaId: string, trabajosClinica: Trabajo[]) => {
+    const clinica = clinicas.find(c => c.id === clinicaId);
+    const mesActual = new Date().toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'long' 
+    });
+
+    const contenido = `
+REPORTE MENSUAL - ${mesActual.toUpperCase()}
+CLÍNICA: ${clinica?.nombre}
+=============================================
+
+RESUMEN DEL MES:
+----------------
+Total de pacientes: ${trabajosClinica.length}
+Total de servicios: ${trabajosClinica.reduce((sum, t) => sum + t.servicios.length, 0)}
+Ingreso total: $${trabajosClinica.reduce((sum, t) => sum + t.precioTotal, 0)}
+
+DETALLE DE PACIENTES:
+---------------------
+${trabajosClinica.map((trabajo, index) => `
+${index + 1}. ${trabajo.paciente}
+   Dentista: ${obtenerNombreDentista(trabajo.dentistaId)}
+   Estado: ${obtenerTextoEstado(trabajo.estado)}
+   Servicios: ${trabajo.servicios.map(s => 
+     `${obtenerNombreServicio(s.servicioId)} (x${s.cantidad})`
+   ).join(', ')}
+   Total: $${trabajo.precioTotal}
+   ${trabajo.observaciones ? `Observaciones: ${trabajo.observaciones}` : ''}
+`).join('\n')}
+
+=============================================
+Generado el: ${new Date().toLocaleDateString()}
+    `.trim();
+
+    // Descargar archivo
+    const blob = new Blob([contenido], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Reporte-${clinica?.nombre}-${mesActual}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    alert(`📊 Reporte mensual generado para ${clinica?.nombre}\nTotal: ${trabajosClinica.length} pacientes`);
+  };
+
+  // Obtener estilo del estado
+  const obtenerEstiloEstado = (estado: string) => {
+    switch (estado) {
+      case 'pendiente': return { ...styles.estado, ...styles.estadoPendiente };
+      case 'produccion': return { ...styles.estado, ...styles.estadoProduccion };
+      case 'terminado': return { ...styles.estado, ...styles.estadoTerminado };
+      case 'entregado': return { ...styles.estado, ...styles.estadoEntregado };
+      default: return { ...styles.estado, ...styles.estadoPendiente };
+    }
+  };
+
+  // Obtener texto del estado
+  const obtenerTextoEstado = (estado: string) => {
+    switch (estado) {
+      case 'pendiente': return 'Pendiente';
+      case 'produccion': return 'En Producción';
+      case 'terminado': return 'Terminado';
+      case 'entregado': return 'Entregado';
+      default: return estado;
+    }
+  };
+
+  // Calcular estadísticas por clínica
+  const calcularEstadisticasClinica = (trabajosClinica: Trabajo[]) => {
+    const totalPacientes = trabajosClinica.length;
+    const totalServicios = trabajosClinica.reduce((sum, t) => sum + t.servicios.length, 0);
+    const totalIngresos = trabajosClinica.reduce((sum, t) => sum + t.precioTotal, 0);
+    const pendientes = trabajosClinica.filter(t => t.estado === 'pendiente').length;
+    const enProduccion = trabajosClinica.filter(t => t.estado === 'produccion').length;
+    const terminados = trabajosClinica.filter(t => t.estado === 'terminado').length;
+    const entregados = trabajosClinica.filter(t => t.estado === 'entregado').length;
+
+    return { totalPacientes, totalServicios, totalIngresos, pendientes, enProduccion, terminados, entregados };
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div>
+          <button style={styles.backButton} onClick={onBack}>
+            ← Volver al Dashboard
+          </button>
+          <h1 style={styles.title}>🔧 Trabajos en Proceso - Por Clínica</h1>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div style={styles.filtros}>
+        <button
+          style={filtroEstado === 'todos' ? { ...styles.botonFiltro, ...styles.botonFiltroActivo } : styles.botonFiltro}
+          onClick={() => setFiltroEstado('todos')}
+        >
+          Todas las Clínicas
+        </button>
+        <button
+          style={filtroEstado === 'pendiente' ? { ...styles.botonFiltro, ...styles.botonFiltroActivo } : styles.botonFiltro}
+          onClick={() => setFiltroEstado('pendiente')}
+        >
+          Con Pendientes
+        </button>
+        <button
+          style={filtroEstado === 'produccion' ? { ...styles.botonFiltro, ...styles.botonFiltroActivo } : styles.botonFiltro}
+          onClick={() => setFiltroEstado('produccion')}
+        >
+          En Producción
+        </button>
+      </div>
+
+      {/* Lista de Clínicas */}
+      {clinicasFiltradas.length === 0 ? (
+        <div style={styles.vacio}>
+          <h3>No hay trabajos {filtroEstado !== 'todos' ? `en estado seleccionado` : ''}</h3>
+          <p>Los trabajos se agruparán por clínica para mejor organización.</p>
+        </div>
+      ) : (
+        clinicasFiltradas.map(({ clinicaId, clinica, trabajos: trabajosClinica }) => {
+          const stats = calcularEstadisticasClinica(trabajosClinica);
+          const expandida = clinicaExpandida === clinicaId;
+
+          return (
+            <div key={clinicaId} style={styles.cardClinica}>
+              {/* Header de la Clínica */}
+              <div 
+                style={styles.headerClinica}
+                onClick={() => setClinicaExpandida(expandida ? null : clinicaId)}
+              >
+                <h2 style={styles.nombreClinica}>
+                  🏥 {clinica.nombre}
+                  <span style={{ fontSize: '0.875rem', color: '#64748b', marginLeft: '1rem' }}>
+                    ({trabajosClinica.length} paciente{trabajosClinica.length !== 1 ? 's' : ''})
+                  </span>
+                </h2>
+                <span style={{ color: '#64748b' }}>
+                  {expandida ? '▲' : '▼'}
+                </span>
+              </div>
+
+              {/* Resumen de la Clínica */}
+              <div style={styles.resumenClinica}>
+                <div style={styles.resumenItem}>
+                  <div style={styles.resumenNumero}>{stats.totalPacientes}</div>
+                  <div style={styles.resumenLabel}>Pacientes</div>
+                </div>
+                <div style={styles.resumenItem}>
+                  <div style={styles.resumenNumero}>{stats.totalServicios}</div>
+                  <div style={styles.resumenLabel}>Servicios</div>
+                </div>
+                <div style={styles.resumenItem}>
+                  <div style={styles.resumenNumero}>${stats.totalIngresos}</div>
+                  <div style={styles.resumenLabel}>Ingresos</div>
+                </div>
+                <div style={styles.resumenItem}>
+                  <div style={{...styles.resumenNumero, color: '#92400e'}}>{stats.pendientes}</div>
+                  <div style={styles.resumenLabel}>Pendientes</div>
+                </div>
+                <div style={styles.resumenItem}>
+                  <div style={{...styles.resumenNumero, color: '#1e40af'}}>{stats.enProduccion}</div>
+                  <div style={styles.resumenLabel}>En Producción</div>
+                </div>
+              </div>
+
+              {/* Lista de Pacientes (expandible) */}
+              {expandida && (
+                <div style={styles.listaPacientes}>
+                  {trabajosClinica.map(trabajo => (
+                    <div key={trabajo.id} style={styles.pacienteItem}>
+                      <div style={styles.headerPaciente}>
+                        <span style={styles.nombrePaciente}>
+                          👤 {trabajo.paciente} - {obtenerNombreDentista(trabajo.dentistaId)}
+                        </span>
+                        <span style={obtenerEstiloEstado(trabajo.estado)}>
+                          {obtenerTextoEstado(trabajo.estado)}
+                        </span>
+                      </div>
+
+                      <ul style={styles.serviciosList}>
+                        {trabajo.servicios.map((servicio, index) => (
+                          <li key={index} style={styles.servicioItem}>
+                            <span>
+                              {obtenerNombreServicio(servicio.servicioId)} 
+                              {servicio.cantidad > 1 && ` (x${servicio.cantidad})`}
+                              {trabajo.observaciones && ` - ${trabajo.observaciones}`}
+                            </span>
+                            <span>${servicio.precioUnitario * servicio.cantidad}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div style={styles.acciones}>
+                        {trabajo.estado === 'pendiente' && (
+                          <button 
+                            style={{ ...styles.button, ...styles.buttonPrimary }}
+                            onClick={() => cambiarEstado(trabajo.id, 'produccion')}
+                          >
+                            Iniciar Producción
+                          </button>
+                        )}
+                        {trabajo.estado === 'produccion' && (
+                          <button 
+                            style={{ ...styles.button, ...styles.buttonSuccess }}
+                            onClick={() => cambiarEstado(trabajo.id, 'terminado')}
+                          >
+                            Terminar
+                          </button>
+                        )}
+                        {trabajo.estado === 'terminado' && (
+                          <button 
+                            style={{ ...styles.button, ...styles.buttonWarning }}
+                            onClick={() => cambiarEstado(trabajo.id, 'entregado')}
+                          >
+                            Entregar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Formulario para agregar paciente */}
+                  {modoEdicion === clinicaId && (
+                    <div style={styles.formAgregarPaciente}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>➕ Agregar Paciente</h4>
+                      
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Nombre del Paciente *</label>
+                        <input
+                          type="text"
+                          style={styles.input}
+                          value={nuevoPaciente.nombre}
+                          onChange={(e) => setNuevoPaciente({...nuevoPaciente, nombre: e.target.value})}
+                          placeholder="Ej: Carlos López"
+                        />
+                      </div>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Buscar Servicio *</label>
+                        <div style={styles.buscadorContainer}>
+                          <input
+                            type="text"
+                            style={styles.inputBuscador}
+                            value={busquedaServicio}
+                            onChange={(e) => setBusquedaServicio(e.target.value)}
+                            placeholder="🔍 Buscar por nombre o categoría..."
+                          />
+                          <span style={styles.iconoBusqueda}>🔍</span>
+                        </div>
+
+                        {/* Lista de servicios filtrados */}
+                        {busquedaServicio && (
+                          <div style={styles.listaServicios}>
+                            {serviciosFiltrados.length > 0 ? (
+                              serviciosFiltrados.map(servicio => (
+                                <ItemServicio
+                                  key={servicio.id}
+                                  servicio={servicio}
+                                  seleccionado={nuevoPaciente.servicioId === servicio.id}
+                                  onSeleccionar={seleccionarServicio}
+                                />
+                              ))
+                            ) : (
+                              <div style={styles.sinResultados}>
+                                No se encontraron servicios
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Mostrar servicio seleccionado */}
+                        {nuevoPaciente.servicioId && !busquedaServicio && (
+                          <div style={{
+                            padding: '0.5rem',
+                            backgroundColor: '#f0f9ff',
+                            borderRadius: '0.375rem',
+                            marginTop: '0.5rem',
+                            fontSize: '0.875rem'
+                          }}>
+                            ✅ Seleccionado: {obtenerNombreServicio(nuevoPaciente.servicioId)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Cantidad</label>
+                          <input
+                            type="number"
+                            style={styles.input}
+                            value={nuevoPaciente.cantidad}
+                            min="1"
+                            onChange={(e) => setNuevoPaciente({...nuevoPaciente, cantidad: parseInt(e.target.value) || 1})}
+                          />
+                        </div>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Pieza Dental</label>
+                          <input
+                            type="text"
+                            style={styles.input}
+                            value={nuevoPaciente.piezaDental}
+                            onChange={(e) => setNuevoPaciente({...nuevoPaciente, piezaDental: e.target.value})}
+                            placeholder="Opcional"
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                        <button 
+                          style={{ ...styles.button, ...styles.buttonSuccess }}
+                          onClick={() => agregarPacienteAClinica(clinicaId)}
+                        >
+                          Agregar Paciente
+                        </button>
+                        <button 
+                          style={{ ...styles.button, ...styles.buttonSecondary }}
+                          onClick={() => {
+                            setModoEdicion(null);
+                            setBusquedaServicio('');
+                            setNuevoPaciente({ nombre: '', servicioId: '', cantidad: 1, piezaDental: '' });
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total y acciones de la clínica */}
+                  <div style={styles.totalClinica}>
+                    <span>TOTAL CLÍNICA:</span>
+                    <span>${stats.totalIngresos}</span>
+                  </div>
+
+                  <div style={styles.accionesClinica}>
+                    <button 
+                      style={{ ...styles.button, ...styles.buttonPrimary }}
+                      onClick={() => {
+                        setModoEdicion(modoEdicion === clinicaId ? null : clinicaId);
+                        setBusquedaServicio('');
+                        setNuevoPaciente({ nombre: '', servicioId: '', cantidad: 1, piezaDental: '' });
+                      }}
+                    >
+                      {modoEdicion === clinicaId ? 'Cancelar' : '➕ Agregar Paciente'}
+                    </button>
+                    <button 
+                      style={{ ...styles.button, ...styles.buttonSuccess }}
+                      onClick={() => generarReporteMensual(clinicaId, trabajosClinica)}
+                    >
+                      📊 Reporte Mensual
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+};
+
+export default TrabajosProceso;
+
+
+
+
+-----------
+src/data/database.ts 
+
+
+
+// Base de datos temporal - En una aplicación real esto estaría en un backend
+export interface Clinica {
+  id: string;
+  nombre: string;
+  direccion: string;
+  telefono: string;
+  email: string;
+}
+
+export interface Dentista {
+  id: string;
+  clinicaId: string;
+  nombre: string;
+  especialidad: string;
+  telefono: string;
+  email: string;
+}
+
+export interface Servicio {
+  id: string;
+  categoria: string;
+  nombre: string;
+  precioBase: number;
+  activo: boolean;
+}
+
+export interface Laboratorista {
+  id: string;
+  nombre: string;
+  especialidad: string;
+  telefono: string;
+  email: string;
+  activo: boolean;
+}
+
+export interface ServicioTrabajo {
+  servicioId: string;
+  cantidad: number;
+  precioUnitario: number;
+}
+
+export interface Trabajo {
+  id: string;
+  clinicaId: string;
+  dentistaId: string;
+  laboratoristaId?: string;
+  paciente: string;
+  servicios: ServicioTrabajo[];
+  fechaRecibido: string;
+  fechaEntrega: string;
+  estado: 'pendiente' | 'produccion' | 'terminado' | 'entregado';
+  precioTotal: number;
+  observaciones?: string;
+}
+
+// Datos de ejemplo
+export const clinicas: Clinica[] = [
+  {
+    id: '1',
+    nombre: 'Clínica Dental Smile',
+    direccion: 'Av. Principal 123, Ciudad',
+    telefono: '555-0101',
+    email: 'info@smiledental.com'
+  },
+  {
+    id: '2',
+    nombre: 'Centro Odontológico Moderno',
+    direccion: 'Calle Secundaria 456, Ciudad',
+    telefono: '555-0102',
+    email: 'contacto@modernodental.com'
+  }
+];
+
+export const dentistas: Dentista[] = [
+  {
+    id: '1',
+    clinicaId: '1',
+    nombre: 'Dr. Carlos Rodríguez',
+    especialidad: 'Ortodoncia',
+    telefono: '555-0201',
+    email: 'carlos@smiledental.com'
+  },
+  {
+    id: '2',
+    clinicaId: '1',
+    nombre: 'Dra. María González',
+    especialidad: 'Endodoncia',
+    telefono: '555-0202',
+    email: 'maria@smiledental.com'
+  },
+  {
+    id: '3',
+    clinicaId: '2',
+    nombre: 'Dr. Roberto Sánchez',
+    especialidad: 'Implantes',
+    telefono: '555-0203',
+    email: 'roberto@modernodental.com'
+  }
+];
+
+export const categorias = {
+  fija: '🦷 Prótesis Fija',
+  removible: '👄 Prótesis Removible',
+  implantes: '⚡ Implantes',
+  ortodoncia: '🎯 Ortodoncia',
+  reparaciones: '🔧 Reparaciones y Otros'
+};
+
+export const servicios: Servicio[] = [
+  // Prótesis Fija
+  {
+    id: 'f1',
+    categoria: 'fija',
+    nombre: 'Corona Metal Porcelana',
+    precioBase: 150,
+    activo: true
+  },
+  {
+    id: 'f2',
+    categoria: 'fija',
+    nombre: 'Corona de Zirconio',
+    precioBase: 250,
+    activo: true
+  },
+  {
+    id: 'f3',
+    categoria: 'fija',
+    nombre: 'Inlay/Onlay Resina',
+    precioBase: 120,
+    activo: true
+  },
+  {
+    id: 'f4',
+    categoria: 'fija',
+    nombre: 'Carilla Estética',
+    precioBase: 180,
+    activo: true
+  },
+
+  // Prótesis Removible
+  {
+    id: 'r1',
+    categoria: 'removible',
+    nombre: 'Prótesis Acrílica Completa',
+    precioBase: 200,
+    activo: true
+  },
+  {
+    id: 'r2',
+    categoria: 'removible',
+    nombre: 'Prótesis Parcial Acrílica',
+    precioBase: 150,
+    activo: true
+  },
+  {
+    id: 'r3',
+    categoria: 'removible',
+    nombre: 'Esqueleto en CoCr',
+    precioBase: 300,
+    activo: true
+  },
+  {
+    id: 'r4',
+    categoria: 'removible',
+    nombre: 'Flexible Total',
+    precioBase: 350,
+    activo: true
+  },
+
+  // Implantes
+  {
+    id: 'i1',
+    categoria: 'implantes',
+    nombre: 'Corona sobre Implante',
+    precioBase: 400,
+    activo: true
+  },
+  {
+    id: 'i2',
+    categoria: 'implantes',
+    nombre: 'Prótesis Híbrida 6 implantes',
+    precioBase: 1200,
+    activo: true
+  },
+  {
+    id: 'i3',
+    categoria: 'implantes',
+    nombre: 'Barra Toronto',
+    precioBase: 800,
+    activo: true
+  },
+
+  // Ortodoncia
+  {
+    id: 'o1',
+    categoria: 'ortodoncia',
+    nombre: 'Alineador Transparente',
+    precioBase: 500,
+    activo: true
+  },
+  {
+    id: 'o2',
+    categoria: 'ortodoncia',
+    nombre: 'Brackets Estéticos',
+    precioBase: 300,
+    activo: true
+  },
+  {
+    id: 'o3',
+    categoria: 'ortodoncia',
+    nombre: 'Retenedor Fijo',
+    precioBase: 80,
+    activo: true
+  },
+
+  // Reparaciones
+  {
+    id: 'rep1',
+    categoria: 'reparaciones',
+    nombre: 'Reparación de Prótesis',
+    precioBase: 50,
+    activo: true
+  },
+  {
+    id: 'rep2',
+    categoria: 'reparaciones',
+    nombre: 'Ajuste de Prótesis',
+    precioBase: 25,
+    activo: true
+  },
+  {
+    id: 'rep3',
+    categoria: 'reparaciones',
+    nombre: 'Recarga Acrílica',
+    precioBase: 40,
+    activo: true
+  }
+];
+
+export const laboratoristas: Laboratorista[] = [
+  {
+    id: 'lab1',
+    nombre: 'Juan Pérez',
+    especialidad: 'Prótesis Fija',
+    telefono: '555-0301',
+    email: 'juan@laboratorio.com',
+    activo: true
+  },
+  {
+    id: 'lab2',
+    nombre: 'Ana López',
+    especialidad: 'Prótesis Removible',
+    telefono: '555-0302',
+    email: 'ana@laboratorio.com',
+    activo: true
+  },
+  {
+    id: 'lab3',
+    nombre: 'Carlos Martínez',
+    especialidad: 'Implantes',
+    telefono: '555-0303',
+    email: 'carlos@laboratorio.com',
+    activo: true
+  },
+  {
+    id: 'lab4',
+    nombre: 'María Rodríguez',
+    especialidad: 'Ortodoncia',
+    telefono: '555-0304',
+    email: 'maria@laboratorio.com',
+    activo: true
+  }
+];
+
+export const trabajos: Trabajo[] = [
+  {
+    id: 't1',
+    clinicaId: '1',
+    dentistaId: '1',
+    laboratoristaId: 'lab1',
+    paciente: 'Roberto García',
+    servicios: [
+      {
+        servicioId: 'f2',
+        cantidad: 1,
+        precioUnitario: 250
+      }
+    ],
+    fechaRecibido: '2024-01-15',
+    fechaEntrega: '2024-01-22',
+    estado: 'terminado',
+    precioTotal: 250,
+    observaciones: 'Pieza 11'
+  },
+  {
+    id: 't2',
+    clinicaId: '1',
+    dentistaId: '2',
+    laboratoristaId: 'lab2',
+    paciente: 'Laura Martínez',
+    servicios: [
+      {
+        servicioId: 'r1',
+        cantidad: 1,
+        precioUnitario: 200
+      }
+    ],
+    fechaRecibido: '2024-01-16',
+    fechaEntrega: '2024-01-23',
+    estado: 'produccion',
+    precioTotal: 200
+  },
+  {
+    id: 't3',
+    clinicaId: '2',
+    dentistaId: '3',
+    paciente: 'Carlos López',
+    servicios: [
+      {
+        servicioId: 'i1',
+        cantidad: 1,
+        precioUnitario: 400
+      },
+      {
+        servicioId: 'rep1',
+        cantidad: 1,
+        precioUnitario: 50
+      }
+    ],
+    fechaRecibido: '2024-01-17',
+    fechaEntrega: '2024-01-24',
+    estado: 'pendiente',
+    precioTotal: 450
+  }
+];
+
+// Configuración del sistema
+export const settings = {
+  taxNatural: 0,
+  taxJuridica: 0
+};
+
+// Funciones para Laboratoristas
+export const agregarLaboratorista = (laboratorista: Omit<Laboratorista, 'id'>) => {
+  const nuevoLaboratorista: Laboratorista = {
+    ...laboratorista,
+    id: 'lab' + (laboratoristas.length + 1)
+  };
+  laboratoristas.push(nuevoLaboratorista);
+  return nuevoLaboratorista;
+};
+
+export const actualizarLaboratorista = (id: string, datos: Partial<Laboratorista>) => {
+  const index = laboratoristas.findIndex(l => l.id === id);
+  if (index !== -1) {
+    laboratoristas[index] = { ...laboratoristas[index], ...datos };
+  }
+};
+
+export const eliminarLaboratorista = (id: string) => {
+  const index = laboratoristas.findIndex(l => l.id === id);
+  if (index !== -1) {
+    laboratoristas.splice(index, 1);
+  }
+};
+
+export const toggleActivoLaboratorista = (id: string) => {
+  const index = laboratoristas.findIndex(l => l.id === id);
+  if (index !== -1) {
+    laboratoristas[index].activo = !laboratoristas[index].activo;
+  }
+};
+
+// Funciones para Servicios
+export const agregarServicio = (servicio: Omit<Servicio, 'id'>) => {
+  const nuevoServicio: Servicio = {
+    ...servicio,
+    id: 's' + (servicios.length + 1)
+  };
+  servicios.push(nuevoServicio);
+  return nuevoServicio;
+};
+
+export const actualizarServicio = (id: string, datos: Partial<Servicio>) => {
+  const index = servicios.findIndex(s => s.id === id);
+  if (index !== -1) {
+    servicios[index] = { ...servicios[index], ...datos };
+  }
+};
+
+export const eliminarServicio = (id: string) => {
+  const index = servicios.findIndex(s => s.id === id);
+  if (index !== -1) {
+    servicios.splice(index, 1);
+  }
+};
+
+export const toggleActivoServicio = (id: string) => {
+  const index = servicios.findIndex(s => s.id === id);
+  if (index !== -1) {
+    servicios[index].activo = !servicios[index].activo;
+  }
+};
