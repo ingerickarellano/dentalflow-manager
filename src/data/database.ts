@@ -49,7 +49,7 @@ export interface Clinica {
   direccion: string;
   telefono: string;
   email: string;
-  usuarioId?: string; // Nueva: para asociar clínicas a usuarios
+  usuarioId?: string;
 }
 
 export interface Dentista {
@@ -59,7 +59,7 @@ export interface Dentista {
   especialidad: string;
   telefono: string;
   email: string;
-  usuarioId?: string; // Nueva: para asociar dentistas a usuarios
+  usuarioId?: string;
 }
 
 export interface Servicio {
@@ -68,7 +68,7 @@ export interface Servicio {
   nombre: string;
   precioBase: number;
   activo: boolean;
-  usuarioId?: string; // Nueva: servicios personalizados por usuario
+  usuarioId?: string;
 }
 
 export interface Laboratorista {
@@ -78,7 +78,7 @@ export interface Laboratorista {
   telefono: string;
   email: string;
   activo: boolean;
-  usuarioId?: string; // Nueva: laboratoristas por usuario
+  usuarioId?: string;
 }
 
 export interface ServicioTrabajo {
@@ -99,7 +99,7 @@ export interface Trabajo {
   estado: 'pendiente' | 'produccion' | 'terminado' | 'entregado';
   precioTotal: number;
   observaciones?: string;
-  usuarioId?: string; // Nueva: trabajos por usuario
+  usuarioId?: string;
 }
 
 // ==================== DATOS DEL SISTEMA ====================
@@ -259,7 +259,7 @@ export const clinicas: Clinica[] = [
     direccion: 'Av. Principal 123, Ciudad',
     telefono: '555-0101',
     email: 'info@smiledental.com',
-    usuarioId: '2' // Pertenece a Tecnodentille
+    usuarioId: '2'
   },
   {
     id: '2',
@@ -267,7 +267,7 @@ export const clinicas: Clinica[] = [
     direccion: 'Calle Secundaria 456, Ciudad',
     telefono: '555-0102',
     email: 'contacto@modernodental.com',
-    usuarioId: '2' // Pertenece a Tecnodentille
+    usuarioId: '2'
   },
   {
     id: '3',
@@ -275,7 +275,6 @@ export const clinicas: Clinica[] = [
     direccion: 'Av. Demo 789, Ciudad',
     telefono: '555-0103',
     email: 'info@demo.com'
-    // Sin usuarioId = clínica del sistema
   }
 ];
 
@@ -315,13 +314,11 @@ export const dentistas: Dentista[] = [
     especialidad: 'General',
     telefono: '555-0204',
     email: 'doctor@sistema.com'
-    // Sin usuarioId = dentista del sistema
   }
 ];
 
 // Servicios (mezcla de servicios del sistema y personalizados)
 export const servicios: Servicio[] = [
-  // Servicios del sistema (sin usuarioId)
   {
     id: 'f1',
     categoria: 'fija',
@@ -350,7 +347,6 @@ export const servicios: Servicio[] = [
     precioBase: 400,
     activo: true
   },
-  // Servicios personalizados de Tecnodentille
   {
     id: 'tecno1',
     categoria: 'implantes',
@@ -470,7 +466,6 @@ export const activarMembresia = (usuarioId: string, tipoMembresia: string, datos
   const fechaFin = new Date();
   fechaFin.setDate(fechaFin.getDate() + plan.duracionDias);
 
-  // Crear membresía
   const nuevaMembresia: Membresia = {
     id: 'm' + (membresias.length + 1),
     usuarioId,
@@ -485,7 +480,6 @@ export const activarMembresia = (usuarioId: string, tipoMembresia: string, datos
     caracteristicas: plan.caracteristicas
   };
 
-  // Crear pago
   const nuevoPago: Pago = {
     id: 'p' + (pagos.length + 1),
     usuarioId,
@@ -516,10 +510,7 @@ export const verificarLimitesMembresia = (usuarioId: string) => {
   const membresia = obtenerMembresiaActiva(usuarioId);
   if (!membresia) return { puedeOperar: false, motivo: 'No tiene membresía activa' };
 
-  // Contar clínicas del usuario
   const clinicasUsuario = clinicas.filter(c => c.usuarioId === usuarioId).length;
-  
-  // Contar dentistas del usuario
   const dentistasUsuario = dentistas.filter(d => d.usuarioId === usuarioId).length;
 
   if (clinicasUsuario >= membresia.limiteClinicas) {
@@ -535,27 +526,27 @@ export const verificarLimitesMembresia = (usuarioId: string) => {
 
 // Funciones para filtrar datos por usuario
 export const obtenerClinicasUsuario = (usuarioId: string) => {
-  if (usuarioId === '1') return clinicas; // Admin ve todo
+  if (usuarioId === '1') return clinicas;
   return clinicas.filter(c => !c.usuarioId || c.usuarioId === usuarioId);
 };
 
 export const obtenerDentistasUsuario = (usuarioId: string) => {
-  if (usuarioId === '1') return dentistas; // Admin ve todo
+  if (usuarioId === '1') return dentistas;
   return dentistas.filter(d => !d.usuarioId || d.usuarioId === usuarioId);
 };
 
 export const obtenerServiciosUsuario = (usuarioId: string) => {
-  if (usuarioId === '1') return servicios; // Admin ve todo
+  if (usuarioId === '1') return servicios;
   return servicios.filter(s => !s.usuarioId || s.usuarioId === usuarioId);
 };
 
 export const obtenerLaboratoristasUsuario = (usuarioId: string) => {
-  if (usuarioId === '1') return laboratoristas; // Admin ve todo
+  if (usuarioId === '1') return laboratoristas;
   return laboratoristas.filter(l => !l.usuarioId || l.usuarioId === usuarioId);
 };
 
 export const obtenerTrabajosUsuario = (usuarioId: string) => {
-  if (usuarioId === '1') return trabajos; // Admin ve todo
+  if (usuarioId === '1') return trabajos;
   return trabajos.filter(t => t.usuarioId === usuarioId);
 };
 
@@ -623,7 +614,6 @@ export const toggleActivoServicio = (id: string) => {
 
 // Función para inicializar datos de demo para nuevos usuarios
 export const inicializarDatosDemo = (usuarioId: string, laboratorioNombre: string) => {
-  // Crear una clínica de ejemplo
   const nuevaClinica: Clinica = {
     id: 'demo-' + Date.now(),
     nombre: `${laboratorioNombre} - Clínica Principal`,
@@ -634,7 +624,6 @@ export const inicializarDatosDemo = (usuarioId: string, laboratorioNombre: strin
   };
   clinicas.push(nuevaClinica);
 
-  // Crear un dentista de ejemplo
   const nuevoDentista: Dentista = {
     id: 'demo-dent-' + Date.now(),
     clinicaId: nuevaClinica.id,
@@ -648,3 +637,185 @@ export const inicializarDatosDemo = (usuarioId: string, laboratorioNombre: strin
 
   return { clinica: nuevaClinica, dentista: nuevoDentista };
 };
+
+// ==================== FUNCIONES PARA EL PANEL DE ADMINISTRACIÓN ====================
+
+export const toggleActivoUsuario = (usuarioId: string) => {
+  const index = usuarios.findIndex(u => u.id === usuarioId);
+  if (index !== -1) {
+    usuarios[index].activo = !usuarios[index].activo;
+  }
+};
+
+export const eliminarUsuario = (usuarioId: string) => {
+  const index = usuarios.findIndex(u => u.id === usuarioId);
+  if (index !== -1) {
+    usuarios.splice(index, 1);
+    
+    // Eliminar membresías asociadas
+    const indexMembresia = membresias.findIndex(m => m.usuarioId === usuarioId);
+    if (indexMembresia !== -1) {
+      membresias.splice(indexMembresia, 1);
+    }
+    
+    // Eliminar pagos asociados
+    const pagosUsuario = pagos.filter(p => p.usuarioId === usuarioId);
+    pagosUsuario.forEach(pago => {
+      const indexPago = pagos.findIndex(p => p.id === pago.id);
+      if (indexPago !== -1) {
+        pagos.splice(indexPago, 1);
+      }
+    });
+
+    // Eliminar datos dentales asociados
+    const clinicasUsuario = clinicas.filter(c => c.usuarioId === usuarioId);
+    clinicasUsuario.forEach(clinica => {
+      const indexClinica = clinicas.findIndex(c => c.id === clinica.id);
+      if (indexClinica !== -1) {
+        clinicas.splice(indexClinica, 1);
+      }
+    });
+
+    const dentistasUsuario = dentistas.filter(d => d.usuarioId === usuarioId);
+    dentistasUsuario.forEach(dentista => {
+      const indexDentista = dentistas.findIndex(d => d.id === dentista.id);
+      if (indexDentista !== -1) {
+        dentistas.splice(indexDentista, 1);
+      }
+    });
+
+    const serviciosUsuario = servicios.filter(s => s.usuarioId === usuarioId);
+    serviciosUsuario.forEach(servicio => {
+      const indexServicio = servicios.findIndex(s => s.id === servicio.id);
+      if (indexServicio !== -1) {
+        servicios.splice(indexServicio, 1);
+      }
+    });
+
+    const laboratoristasUsuario = laboratoristas.filter(l => l.usuarioId === usuarioId);
+    laboratoristasUsuario.forEach(laboratorista => {
+      const indexLaboratorista = laboratoristas.findIndex(l => l.id === laboratorista.id);
+      if (indexLaboratorista !== -1) {
+        laboratoristas.splice(indexLaboratorista, 1);
+      }
+    });
+
+    const trabajosUsuario = trabajos.filter(t => t.usuarioId === usuarioId);
+    trabajosUsuario.forEach(trabajo => {
+      const indexTrabajo = trabajos.findIndex(t => t.id === trabajo.id);
+      if (indexTrabajo !== -1) {
+        trabajos.splice(indexTrabajo, 1);
+      }
+    });
+  }
+};
+
+export const actualizarMembresia = (membresiaId: string, datos: Partial<Membresia>) => {
+  const index = membresias.findIndex(m => m.id === membresiaId);
+  if (index !== -1) {
+    membresias[index] = { ...membresias[index], ...datos };
+  }
+};
+
+export const extenderMembresia = (membresiaId: string, diasExtras: number) => {
+  const index = membresias.findIndex(m => m.id === membresiaId);
+  if (index !== -1) {
+    const fechaFin = new Date(membresias[index].fechaFin);
+    fechaFin.setDate(fechaFin.getDate() + diasExtras);
+    membresias[index].fechaFin = fechaFin.toISOString().split('T')[0];
+  }
+};
+
+export const cambiarPlanMembresia = (usuarioId: string, nuevoPlanId: string) => {
+  const plan = planesMembresia.find(p => p.id === nuevoPlanId);
+  if (!plan) throw new Error('Plan no encontrado');
+
+  const index = membresias.findIndex(m => m.usuarioId === usuarioId);
+  if (index !== -1) {
+    membresias[index].tipo = plan.id as any;
+    membresias[index].precio = plan.precio;
+    membresias[index].limiteClinicas = plan.limiteClinicas;
+    membresias[index].limiteDentistas = plan.limiteDentistas;
+    membresias[index].caracteristicas = plan.caracteristicas;
+  }
+};
+
+export const obtenerEstadisticasSistema = () => {
+  const totalUsuarios = usuarios.length;
+  const usuariosActivos = usuarios.filter(u => u.activo).length;
+  const totalMembresias = membresias.length;
+  const membresiasActivas = membresias.filter(m => m.estado === 'activa').length;
+  const ingresosTotales = pagos.filter(p => p.estado === 'completado').reduce((sum, p) => sum + p.monto, 0);
+  const totalTrabajos = trabajos.length;
+  const trabajosPendientes = trabajos.filter(t => t.estado === 'pendiente').length;
+  const trabajosProduccion = trabajos.filter(t => t.estado === 'produccion').length;
+  const trabajosTerminados = trabajos.filter(t => t.estado === 'terminado').length;
+
+  const distribucionPlanes = planesMembresia.map(plan => ({
+    plan: plan.nombre,
+    cantidad: membresias.filter(m => m.tipo === plan.id).length
+  }));
+
+  return {
+    totalUsuarios,
+    usuariosActivos,
+    totalMembresias,
+    membresiasActivas,
+    ingresosTotales,
+    totalTrabajos,
+    trabajosPendientes,
+    trabajosProduccion,
+    trabajosTerminados,
+    distribucionPlanes
+  };
+};
+
+export const obtenerUsuariosConMembresia = () => {
+  return usuarios.map(usuario => {
+    const membresia = obtenerMembresiaActiva(usuario.id);
+    const estadisticas = {
+      clinicas: clinicas.filter(c => c.usuarioId === usuario.id).length,
+      dentistas: dentistas.filter(d => d.usuarioId === usuario.id).length,
+      trabajos: trabajos.filter(t => t.usuarioId === usuario.id).length,
+      servicios: servicios.filter(s => s.usuarioId === usuario.id).length
+    };
+
+    return {
+      ...usuario,
+      membresia,
+      estadisticas
+    };
+  });
+};
+
+export const obtenerPagosRecientes = (limite: number = 10) => {
+  return pagos
+    .sort((a, b) => new Date(b.fechaPago).getTime() - new Date(a.fechaPago).getTime())
+    .slice(0, limite)
+    .map(pago => {
+      const usuario = usuarios.find(u => u.id === pago.usuarioId);
+      const membresia = membresias.find(m => m.id === pago.membresiaId);
+      
+      return {
+        ...pago,
+        usuarioNombre: usuario?.nombre,
+        usuarioLaboratorio: usuario?.laboratorio,
+        planMembresia: membresia?.tipo
+      };
+    });
+};
+
+// Función para verificar y actualizar estados de membresías expiradas
+export const actualizarEstadosMembresias = () => {
+  const hoy = new Date();
+  
+  membresias.forEach(membresia => {
+    const fechaFin = new Date(membresia.fechaFin);
+    if (fechaFin < hoy && membresia.estado === 'activa') {
+      membresia.estado = 'expirada';
+    }
+  });
+};
+
+// Inicializar la verificación de membresías expiradas
+actualizarEstadosMembresias();
