@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { planesMembresia, crearUsuario, activarMembresia } from '../data/database';
 
-const Registro: React.FC = () => {
+// Interface corregida
+interface RegistroProps {
+  onRegister?: (user: any) => void;
+  onBack?: () => void;
+}
+
+const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const planSeleccionado = searchParams.get('plan') || 'gratuita';
@@ -193,6 +199,11 @@ const Registro: React.FC = () => {
 
       setPaso(3);
       
+      // Llamar al callback onRegister si existe
+      if (onRegister) {
+        onRegister(usuario);
+      }
+      
       // Auto-login después de 3 segundos
       setTimeout(() => {
         navigate('/login');
@@ -222,6 +233,18 @@ const Registro: React.FC = () => {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>Registro en DentalFlow</h1>
+        {onBack && (
+          <button 
+            style={{
+              ...styles.button,
+              ...styles.buttonSecondary,
+              marginTop: '1rem'
+            }}
+            onClick={onBack}
+          >
+            ← Volver al Inicio
+          </button>
+        )}
       </div>
 
       {/* Progress Bar */}

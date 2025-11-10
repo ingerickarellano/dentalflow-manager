@@ -10,6 +10,7 @@ const users = [
 
 interface LoginProps {
   onLogin: (user: any) => void;
+  onBack?: () => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {

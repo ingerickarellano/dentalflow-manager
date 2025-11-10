@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { clinicas, dentistas, trabajos, servicios, laboratoristas } from '../data/database';
 
 interface DashboardProps {
+  user: {
+    id: string;
+    email: string;
+    nombre: string;
+    rol: string;
+  };
   onNavigate: (module: string) => void;
   onLogout: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onLogout }) => {
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [resultados, setResultados] = useState<{
     pacientes: any[];
@@ -17,6 +23,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
     clinicas: [],
     trabajos: []
   });
+
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [hoveredResultado, setHoveredResultado] = useState<string | null>(null);
 
   const styles = {
     container: {
@@ -40,6 +49,32 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
     subtitle: {
       color: '#64748b',
       marginTop: '0.5rem'
+    },
+    userInfo: {
+      backgroundColor: '#dbeafe',
+      padding: '1rem',
+      borderRadius: '0.5rem',
+      marginTop: '1rem',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    userRole: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      padding: '0.25rem 0.75rem',
+      borderRadius: '1rem',
+      fontSize: '0.75rem',
+      fontWeight: '600'
+    },
+    adminBadge: {
+      backgroundColor: '#dc2626',
+      color: 'white',
+      padding: '0.25rem 0.5rem',
+      borderRadius: '0.25rem',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      marginLeft: '0.5rem'
     },
     searchContainer: {
       marginTop: '1.5rem',
@@ -158,17 +193,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
     badgeEntregado: {
       backgroundColor: '#e5e7eb',
       color: '#374151'
+    },
+    statsGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+      gap: '1rem',
+      marginTop: '1.5rem'
     }
   };
 
-  const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
-  const [hoveredResultado, setHoveredResultado] = React.useState<string | null>(null);
-
-  const modules = [
+  // MÓDULOS PARA ADMINISTRADOR
+  const modulesAdmin = [
     {
       id: 'clinicas',
       title: '🏥 Clínicas y Dentistas',
-      description: 'Gestiona las clínicas dentales y odontólogos asociados a tu laboratorio.',
+      description: 'Gestiona todas las clínicas dentales y odontólogos del sistema.',
       color: '#2563eb'
     },
     {
@@ -180,13 +219,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
     {
       id: 'trabajos-proceso',
       title: '🔧 Trabajos en Proceso',
-      description: 'Control y seguimiento de trabajos dentales en producción.',
+      description: 'Control y seguimiento de todos los trabajos dentales en producción.',
       color: '#10b981'
     },
     {
       id: 'laboratoristas',
       title: '👨‍🔧 Laboratoristas',
-      description: 'Gestiona los técnicos y laboratoristas de tu laboratorio.',
+      description: 'Gestiona todos los técnicos y laboratoristas del sistema.',
       color: '#f97316'
     },
     {
@@ -200,7 +239,59 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
       title: '📊 Reportes',
       description: 'Genera reportes de trabajos, ingresos y productividad.',
       color: '#f59e0b'
-    }, // <- AQUÍ FALTABA LA COMA - línea 202
+    },
+    {
+      id: 'admin',
+      title: '👑 Panel de Administración',
+      description: 'Gestiona usuarios, membresías y ve estadísticas del sistema.',
+      color: '#dc2626'
+    },
+    {
+      id: 'opciones-cuenta',
+      title: '⚙️ Opciones del Sistema',
+      description: 'Configura la información general del sistema y parámetros.',
+      color: '#6b7280'
+    }
+  ];
+
+  // MÓDULOS PARA CLIENTES NORMALES
+  const modulesCliente = [
+    {
+      id: 'clinicas',
+      title: '🏥 Mis Clínicas y Dentistas',
+      description: 'Gestiona tus clínicas dentales y odontólogos asociados.',
+      color: '#2563eb'
+    },
+    {
+      id: 'crear-trabajo',
+      title: '📋 Crear Lista de Trabajo',
+      description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
+      color: '#06b6d4'
+    },
+    {
+      id: 'trabajos-proceso',
+      title: '🔧 Mis Trabajos en Proceso',
+      description: 'Control y seguimiento de tus trabajos dentales en producción.',
+      color: '#10b981'
+    },
+    {
+      id: 'laboratoristas',
+      title: '👨‍🔧 Mis Laboratoristas',
+      description: 'Gestiona los técnicos y laboratoristas de tu laboratorio.',
+      color: '#f97316'
+    },
+    {
+      id: 'precios',
+      title: '💰 Mi Lista de Precios',
+      description: 'Configura tus precios base y personalizados.',
+      color: '#8b5cf6'
+    },
+    {
+      id: 'reportes',
+      title: '📊 Mis Reportes',
+      description: 'Genera reportes de tus trabajos, ingresos y productividad.',
+      color: '#f59e0b'
+    },
     {
       id: 'opciones-cuenta',
       title: '⚙️ Opciones de la Cuenta',
@@ -208,6 +299,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
       color: '#6b7280'
     }
   ];
+
+  // Elegir los módulos según el rol
+  const modules = user?.rol === 'admin' ? modulesAdmin : modulesCliente;
+
+  // Estadísticas para mostrar en el dashboard
+  const estadisticas = {
+    totalClinicas: clinicas.length,
+    totalDentistas: dentistas.length,
+    totalTrabajos: trabajos.length,
+    trabajosPendientes: trabajos.filter(t => t.estado === 'pendiente').length,
+    trabajosProduccion: trabajos.filter(t => t.estado === 'produccion').length,
+    trabajosTerminados: trabajos.filter(t => t.estado === 'terminado').length
+  };
 
   const handleBuscar = (termino: string) => {
     setTerminoBusqueda(termino);
@@ -220,9 +324,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
     const terminoLower = termino.toLowerCase();
 
     // Buscar en pacientes
-    const pacientesEncontrados = trabajos.filter(trabajo =>
+    const pacientesEncontrados = trabajos.filter((trabajo: any) =>
       trabajo.paciente.toLowerCase().includes(terminoLower)
-    ).map(trabajo => ({
+    ).map((trabajo: any) => ({
       ...trabajo,
       tipo: 'paciente',
       clinica: clinicas.find(c => c.id === trabajo.clinicaId)?.nombre,
@@ -231,20 +335,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
     }));
 
     // Buscar en clínicas
-    const clinicasEncontradas = clinicas.filter(clinica =>
+    const clinicasEncontradas = clinicas.filter((clinica: any) =>
       clinica.nombre.toLowerCase().includes(terminoLower) ||
       clinica.direccion.toLowerCase().includes(terminoLower) ||
       clinica.email.toLowerCase().includes(terminoLower)
     );
 
     // Buscar en trabajos (por estado o servicios)
-    const trabajosEncontrados = trabajos.filter(trabajo =>
+    const trabajosEncontrados = trabajos.filter((trabajo: any) =>
       trabajo.estado.toLowerCase().includes(terminoLower) ||
-      trabajo.servicios.some(servicioTrabajo => {
+      trabajo.servicios.some((servicioTrabajo: any) => {
         const servicio = servicios.find(s => s.id === servicioTrabajo.servicioId);
         return servicio?.nombre.toLowerCase().includes(terminoLower);
       })
-    ).map(trabajo => ({
+    ).map((trabajo: any) => ({
       ...trabajo,
       tipo: 'trabajo',
       clinica: clinicas.find(c => c.id === trabajo.clinicaId)?.nombre,
@@ -295,8 +399,61 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Dashboard - DentalFlow Manager</h1>
-        <p style={styles.subtitle}>Sistema de gestión para laboratorio dental</p>
+        <div>
+          <h1 style={styles.title}>
+            Dashboard - DentalFlow Manager
+            {user?.rol === 'admin' && (
+              <span style={styles.adminBadge}>ADMINISTRADOR</span>
+            )}
+          </h1>
+          <p style={styles.subtitle}>
+            {user?.rol === 'admin' 
+              ? 'Sistema de gestión completo - Modo Administrador' 
+              : `Sistema de gestión para ${user?.nombre || 'tu laboratorio'}`
+            }
+          </p>
+        </div>
+
+        {/* Información del usuario */}
+        <div style={styles.userInfo}>
+          <div>
+             <strong>👤 {user?.nombre}</strong>
+            <div style={{color: '#64748b', fontSize: '0.875rem'}}>
+             {user?.email}
+            </div>
+          </div>
+          <div style={styles.userRole}>
+            {user?.rol === 'admin' ? '👑 ADMINISTRADOR' : '👤 CLIENTE'}
+          </div>
+        </div>
+
+        {/* Estadísticas rápidas */}
+        <div style={styles.statsGrid}>
+          <div style={{textAlign: 'center'}}>
+            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb'}}>
+              {estadisticas.totalClinicas}
+            </div>
+            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Clínicas</div>
+          </div>
+          <div style={{textAlign: 'center'}}>
+            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981'}}>
+              {estadisticas.totalDentistas}
+            </div>
+            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Dentistas</div>
+          </div>
+          <div style={{textAlign: 'center'}}>
+            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b'}}>
+              {estadisticas.totalTrabajos}
+            </div>
+            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Trabajos</div>
+          </div>
+          <div style={{textAlign: 'center'}}>
+            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626'}}>
+              {estadisticas.trabajosPendientes}
+            </div>
+            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Pendientes</div>
+          </div>
+        </div>
 
         {/* 🔍 BUSCADOR GLOBAL */}
         <div style={styles.searchContainer}>
@@ -322,7 +479,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
           {resultados.pacientes.length > 0 && (
             <div style={styles.resultadoSection}>
               <h4 style={styles.resultadoTitle}>👤 Pacientes ({resultados.pacientes.length})</h4>
-              {resultados.pacientes.map((paciente, index) => (
+              {resultados.pacientes.map((paciente: any, index: number) => (
                 <div
                   key={`paciente-${index}`}
                   style={{
@@ -355,7 +512,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
           {resultados.clinicas.length > 0 && (
             <div style={styles.resultadoSection}>
               <h4 style={styles.resultadoTitle}>🏥 Clínicas ({resultados.clinicas.length})</h4>
-              {resultados.clinicas.map((clinica, index) => (
+              {resultados.clinicas.map((clinica: any, index: number) => (
                 <div
                   key={`clinica-${index}`}
                   style={{
@@ -384,7 +541,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
           {resultados.trabajos.length > 0 && (
             <div style={styles.resultadoSection}>
               <h4 style={styles.resultadoTitle}>🔧 Trabajos ({resultados.trabajos.length})</h4>
-              {resultados.trabajos.map((trabajo, index) => (
+              {resultados.trabajos.map((trabajo: any, index: number) => (
                 <div
                   key={`trabajo-${index}`}
                   style={{
@@ -451,13 +608,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
                     onNavigate(module.id);
                   }}
                 >
-                  {module.id === 'clinicas' && 'Gestionar Clínicas'}
+                  {module.id === 'clinicas' && (user?.rol === 'admin' ? 'Gestionar Clínicas' : 'Mis Clínicas')}
                   {module.id === 'crear-trabajo' && 'Crear Trabajo'}
-                  {module.id === 'trabajos-proceso' && 'Ver Trabajos'}
-                  {module.id === 'laboratoristas' && 'Gestionar Técnicos'}
-                  {module.id === 'precios' && 'Gestionar Precios'}
-                  {module.id === 'reportes' && 'Ver Reportes'}
-                  {module.id === 'opciones-cuenta' && 'Configurar Cuenta'} {/* <- NUEVO BOTÓN */}
+                  {module.id === 'trabajos-proceso' && (user?.rol === 'admin' ? 'Ver Trabajos' : 'Mis Trabajos')}
+                  {module.id === 'laboratoristas' && (user?.rol === 'admin' ? 'Gestionar Técnicos' : 'Mis Laboratoristas')}
+                  {module.id === 'precios' && (user?.rol === 'admin' ? 'Gestionar Precios' : 'Mis Precios')}
+                  {module.id === 'reportes' && (user?.rol === 'admin' ? 'Ver Reportes' : 'Mis Reportes')}
+                  {module.id === 'admin' && 'Panel de Admin'}
+                  {module.id === 'opciones-cuenta' && (user?.rol === 'admin' ? 'Configurar Sistema' : 'Configurar Cuenta')}
                 </button>
               </div>
             ))}
@@ -468,6 +626,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
               style={styles.logoutButton}
               onClick={() => {
                 if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                  localStorage.removeItem('dentalflow-user');
                   onLogout();
                 }
               }}

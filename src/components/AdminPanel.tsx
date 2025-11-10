@@ -139,6 +139,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       backgroundColor: '#dcfce7',
       color: '#166534'
     },
+    badgeWarning: {
+  backgroundColor: '#fef3c7',
+  color: '#d97706',
+  padding: '4px 8px',
+  borderRadius: '12px',
+  fontSize: '12px',
+  fontWeight: '600',
+},
     badgeInactive: {
       backgroundColor: '#fef2f2',
       color: '#991b1b'
@@ -225,6 +233,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       fontSize: '1rem',
       backgroundColor: 'white'
     }
+    
   };
 
   // Estadísticas del sistema
