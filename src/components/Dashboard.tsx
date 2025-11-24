@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { clinicas, dentistas, trabajos, servicios, laboratoristas } from '../data/database';
 
 interface DashboardProps {
@@ -8,11 +9,11 @@ interface DashboardProps {
     nombre: string;
     rol: string;
   };
-  onNavigate: (module: string) => void;
   onLogout: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onLogout }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [resultados, setResultados] = useState<{
     pacientes: any[];
@@ -208,49 +209,57 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onLogout }) => 
       id: 'clinicas',
       title: '🏥 Clínicas y Dentistas',
       description: 'Gestiona todas las clínicas dentales y odontólogos del sistema.',
-      color: '#2563eb'
+      color: '#2563eb',
+      path: '/clinicas'
     },
     {
       id: 'crear-trabajo',
       title: '📋 Crear Lista de Trabajo',
       description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
-      color: '#06b6d4'
+      color: '#06b6d4',
+      path: '/trabajos'
     },
     {
       id: 'trabajos-proceso',
       title: '🔧 Trabajos en Proceso',
       description: 'Control y seguimiento de todos los trabajos dentales en producción.',
-      color: '#10b981'
+      color: '#10b981',
+      path: '/trabajos'
     },
     {
       id: 'laboratoristas',
       title: '👨‍🔧 Laboratoristas',
       description: 'Gestiona todos los técnicos y laboratoristas del sistema.',
-      color: '#f97316'
+      color: '#f97316',
+      path: '/laboratoristas'
     },
     {
       id: 'precios',
       title: '💰 Lista de Precios',
       description: 'Configura precios base y personalizados por clínica/dentista.',
-      color: '#8b5cf6'
+      color: '#8b5cf6',
+      path: '/precios'
     },
     {
       id: 'reportes',
       title: '📊 Reportes',
       description: 'Genera reportes de trabajos, ingresos y productividad.',
-      color: '#f59e0b'
+      color: '#f59e0b',
+      path: '/reportes'
     },
     {
       id: 'admin',
       title: '👑 Panel de Administración',
       description: 'Gestiona usuarios, membresías y ve estadísticas del sistema.',
-      color: '#dc2626'
+      color: '#dc2626',
+      path: '/admin'
     },
     {
       id: 'opciones-cuenta',
       title: '⚙️ Opciones del Sistema',
       description: 'Configura la información general del sistema y parámetros.',
-      color: '#6b7280'
+      color: '#6b7280',
+      path: '/configuracion'
     }
   ];
 
@@ -260,43 +269,50 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onLogout }) => 
       id: 'clinicas',
       title: '🏥 Mis Clínicas y Dentistas',
       description: 'Gestiona tus clínicas dentales y odontólogos asociados.',
-      color: '#2563eb'
+      color: '#2563eb',
+      path: '/clinicas'
     },
     {
       id: 'crear-trabajo',
       title: '📋 Crear Lista de Trabajo',
       description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
-      color: '#06b6d4'
+      color: '#06b6d4',
+      path: '/trabajos'
     },
     {
       id: 'trabajos-proceso',
       title: '🔧 Mis Trabajos en Proceso',
       description: 'Control y seguimiento de tus trabajos dentales en producción.',
-      color: '#10b981'
+      color: '#10b981',
+      path: '/trabajos'
     },
     {
       id: 'laboratoristas',
       title: '👨‍🔧 Mis Laboratoristas',
       description: 'Gestiona los técnicos y laboratoristas de tu laboratorio.',
-      color: '#f97316'
+      color: '#f97316',
+      path: '/laboratoristas'
     },
     {
       id: 'precios',
       title: '💰 Mi Lista de Precios',
       description: 'Configura tus precios base y personalizados.',
-      color: '#8b5cf6'
+      color: '#8b5cf6',
+      path: '/precios'
     },
     {
       id: 'reportes',
       title: '📊 Mis Reportes',
       description: 'Genera reportes de tus trabajos, ingresos y productividad.',
-      color: '#f59e0b'
+      color: '#f59e0b',
+      path: '/reportes'
     },
     {
       id: 'opciones-cuenta',
       title: '⚙️ Opciones de la Cuenta',
       description: 'Configura la información de tu laboratorio, logo y porcentajes.',
-      color: '#6b7280'
+      color: '#6b7280',
+      path: '/configuracion'
     }
   ];
 
@@ -390,10 +406,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onLogout }) => 
 
   const handleResultadoClick = (tipo: string, item: any) => {
     if (tipo === 'paciente' || tipo === 'trabajo') {
-      onNavigate('trabajos-proceso');
+      navigate('/trabajos');
     } else if (tipo === 'clinica') {
-      onNavigate('clinicas');
+      navigate('/clinicas');
     }
+  };
+
+  const handleModuleClick = (path: string) => {
+    navigate(path);
   };
 
   return (
@@ -594,7 +614,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onLogout }) => 
                 }}
                 onMouseEnter={() => setHoveredCard(module.id)}
                 onMouseLeave={() => setHoveredCard(null)}
-                onClick={() => onNavigate(module.id)}
+                onClick={() => handleModuleClick(module.path)}
               >
                 <h3 style={styles.cardTitle}>{module.title}</h3>
                 <p style={styles.cardContent}>{module.description}</p>
@@ -605,7 +625,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate, onLogout }) => 
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onNavigate(module.id);
+                    handleModuleClick(module.path);
                   }}
                 >
                   {module.id === 'clinicas' && (user?.rol === 'admin' ? 'Gestionar Clínicas' : 'Mis Clínicas')}

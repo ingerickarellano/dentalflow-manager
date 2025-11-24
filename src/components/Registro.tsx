@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { planesMembresia, crearUsuario, activarMembresia } from '../data/database';
+import { supabase } from '../lib/supabase';
 
-// Interface corregida
 interface RegistroProps {
   onRegister?: (user: any) => void;
   onBack?: () => void;
@@ -14,25 +13,48 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
   const planSeleccionado = searchParams.get('plan') || 'gratuita';
 
   const [paso, setPaso] = useState(1);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState('');
+  
   const [formData, setFormData] = useState({
-    // Paso 1: Información personal
     nombre: '',
     email: '',
     telefono: '',
     laboratorio: '',
-    username: '',
     password: '',
     confirmPassword: '',
-
-    // Paso 2: Información de pago
-    metodoPago: 'tarjeta',
-    numeroTarjeta: '',
-    fechaExpiracion: '',
-    cvv: '',
-    nombreTitular: ''
   });
 
-  const [plan, setPlan] = useState(planesMembresia.find(p => p.id === planSeleccionado) || planesMembresia[0]);
+  // Planes de suscripción actualizados
+  const planesMembresia = [
+    {
+      id: 'gratuita',
+      nombre: 'Prueba Gratuita',
+      precio: 0,
+      duracion: '30 días',
+      caracteristicas: [
+        'Hasta 5 clínicas',
+        'Hasta 10 trabajos mensuales',
+        'Soporte básico por email',
+        'Acceso a reportes básicos'
+      ]
+    },
+    {
+      id: 'profesional',
+      nombre: 'Plan Profesional',
+      precio: 49,
+      duracion: 'mes',
+      caracteristicas: [
+        'Clínicas ilimitadas',
+        'Trabajos ilimitados',
+        'Soporte prioritario',
+        'Reportes avanzados',
+        'Backup automático'
+      ]
+    }
+  ];
+
+  const [plan] = useState(planesMembresia.find(p => p.id === planSeleccionado) || planesMembresia[0]);
 
   const styles = {
     container: {
@@ -105,6 +127,9 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
       fontSize: '1rem',
       boxSizing: 'border-box' as const
     },
+    inputError: {
+      borderColor: '#dc2626'
+    },
     planSummary: {
       backgroundColor: '#f0f9ff',
       padding: '1.5rem',
@@ -136,7 +161,12 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
       borderRadius: '0.375rem',
       fontSize: '1rem',
       fontWeight: 'bold',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      opacity: 1
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+      cursor: 'not-allowed'
     },
     buttonPrimary: {
       backgroundColor: '#2563eb',
@@ -153,20 +183,33 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
     successIcon: {
       fontSize: '4rem',
       marginBottom: '1rem'
+    },
+    error: {
+      color: '#dc2626',
+      fontSize: '0.875rem',
+      textAlign: 'center' as const,
+      marginBottom: '1rem',
+      padding: '0.5rem',
+      backgroundColor: '#fef2f2',
+      borderRadius: '0.375rem'
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    setError('');
   };
 
   const validarPaso1 = () => {
-    return formData.nombre && formData.email && formData.laboratorio && 
-           formData.username && formData.password && 
-           formData.password === formData.confirmPassword;
+    return formData.nombre && 
+           formData.email && 
+           formData.laboratorio && 
+           formData.password && 
+           formData.password === formData.confirmPassword &&
+           formData.password.length >= 6;
   };
 
   const handleSiguiente = () => {
@@ -178,39 +221,55 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
   };
 
   const handleFinalizar = async () => {
+    setCargando(true);
+    setError('');
+
     try {
-      // Crear usuario
-      const usuario = crearUsuario({
-        username: formData.username,
+      // Registrar usuario en Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
         password: formData.password,
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono,
-        laboratorio: formData.laboratorio,
-        role: 'cliente'
+        options: {
+          data: {
+            nombre: formData.nombre.trim(),
+            laboratorio: formData.laboratorio.trim(),
+            telefono: formData.telefono.trim(),
+            plan: plan.id,
+            rol: 'cliente'
+          }
+        }
       });
 
-      // Activar membresía
-      if (plan.precio > 0) {
-        activarMembresia(usuario.id, plan.id, {
-          metodo: formData.metodoPago
-        });
-      }
+      if (error) throw error;
 
-      setPaso(3);
-      
-      // Llamar al callback onRegister si existe
-      if (onRegister) {
-        onRegister(usuario);
+      if (data.user) {
+        console.log('✅ Usuario creado con UUID:', data.user.id);
+        
+        setPaso(3);
+        
+        // Llamar al callback onRegister si existe
+        if (onRegister) {
+          const userData = {
+            id: data.user.id, // UUID de Supabase
+            email: data.user.email!,
+            nombre: formData.nombre.trim(),
+            laboratorio: formData.laboratorio.trim(),
+            rol: 'cliente',
+            plan: plan.id
+          };
+          onRegister(userData);
+        }
+        
+        // Redirección automática
+        setTimeout(() => {
+          navigate('/login');
+        }, 5000);
       }
-      
-      // Auto-login después de 3 segundos
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
-
-    } catch (error) {
-      alert('Error en el registro: ' + error);
+    } catch (error: any) {
+      console.error('❌ Error en registro:', error);
+      setError(error.message || 'Error al crear la cuenta. Por favor intenta nuevamente.');
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -222,7 +281,9 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
             <div style={styles.successIcon}>🎉</div>
             <h2>¡Registro Exitoso!</h2>
             <p>Tu cuenta ha sido creada exitosamente.</p>
-            <p>Redirigiendo al login...</p>
+            <p>Hemos enviado un email de confirmación a <strong>{formData.email}</strong></p>
+            <p>Por favor verifica tu email antes de iniciar sesión.</p>
+            <p>Redirigiendo al login en 5 segundos...</p>
           </div>
         </div>
       </div>
@@ -241,6 +302,7 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
               marginTop: '1rem'
             }}
             onClick={onBack}
+            disabled={cargando}
           >
             ← Volver al Inicio
           </button>
@@ -265,16 +327,20 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
       </div>
 
       <div style={styles.formContainer}>
+        {error && <div style={styles.error}>{error}</div>}
+
         {/* Resumen del Plan */}
         <div style={styles.planSummary}>
           <h3 style={styles.planName}>{plan.nombre}</h3>
           <div style={styles.planPrice}>
-            ${plan.precio}
-            <span style={{ fontSize: '1rem', color: '#64748b' }}>/mes</span>
+            {plan.precio === 0 ? 'Gratis' : `$${plan.precio}`}
+            <span style={{ fontSize: '1rem', color: '#64748b' }}>
+              {plan.precio > 0 ? '/mes' : ` - ${plan.duracion}`}
+            </span>
           </div>
-          <ul>
+          <ul style={{ margin: 0, paddingLeft: '1rem' }}>
             {plan.caracteristicas.slice(0, 3).map((caract, idx) => (
-              <li key={idx}>✓ {caract}</li>
+              <li key={idx} style={{ marginBottom: '0.25rem' }}>✓ {caract}</li>
             ))}
           </ul>
         </div>
@@ -288,11 +354,15 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
               <input
                 type="text"
                 name="nombre"
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.nombre ? styles.inputError : {})
+                }}
                 value={formData.nombre}
                 onChange={handleInputChange}
                 placeholder="Tu nombre completo"
                 required
+                disabled={cargando}
               />
             </div>
 
@@ -301,11 +371,15 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
               <input
                 type="email"
                 name="email"
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.email ? styles.inputError : {})
+                }}
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="tu@email.com"
                 required
+                disabled={cargando}
               />
             </div>
 
@@ -318,6 +392,7 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
                 value={formData.telefono}
                 onChange={handleInputChange}
                 placeholder="+1 (555) 123-4567"
+                disabled={cargando}
               />
             </div>
 
@@ -326,24 +401,15 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
               <input
                 type="text"
                 name="laboratorio"
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.laboratorio ? styles.inputError : {})
+                }}
                 value={formData.laboratorio}
                 onChange={handleInputChange}
                 placeholder="Ej: Tecnodentille"
                 required
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Usuario *</label>
-              <input
-                type="text"
-                name="username"
-                style={styles.input}
-                value={formData.username}
-                onChange={handleInputChange}
-                placeholder="Nombre de usuario"
-                required
+                disabled={cargando}
               />
             </div>
 
@@ -352,11 +418,15 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
               <input
                 type="password"
                 name="password"
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.password ? styles.inputError : {})
+                }}
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Mínimo 6 caracteres"
                 required
+                disabled={cargando}
               />
             </div>
 
@@ -365,108 +435,71 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
               <input
                 type="password"
                 name="confirmPassword"
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ...(error && formData.password !== formData.confirmPassword ? styles.inputError : {})
+                }}
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 placeholder="Repite tu contraseña"
                 required
+                disabled={cargando}
               />
             </div>
+
+            {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
+              <div style={styles.error}>Las contraseñas no coinciden</div>
+            )}
+
+            {formData.password && formData.password.length < 6 && (
+              <div style={styles.error}>La contraseña debe tener al menos 6 caracteres</div>
+            )}
           </>
         )}
 
-        {paso === 2 && plan.precio > 0 && (
+        {paso === 2 && (
           <>
-            <h3 style={{ marginBottom: '1.5rem' }}>Información de Pago</h3>
+            <h3 style={{ marginBottom: '1.5rem' }}>Confirmación</h3>
             
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Método de Pago</label>
-              <select 
-                name="metodoPago"
-                style={styles.input}
-                value={formData.metodoPago}
-                onChange={handleInputChange}
-              >
-                <option value="tarjeta">Tarjeta de Crédito/Débito</option>
-                <option value="transferencia">Transferencia Bancaria</option>
-                <option value="paypal">PayPal</option>
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Número de Tarjeta</label>
-              <input
-                type="text"
-                name="numeroTarjeta"
-                style={styles.input}
-                value={formData.numeroTarjeta}
-                onChange={handleInputChange}
-                placeholder="1234 5678 9012 3456"
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label style={styles.label}>Fecha Expiración</label>
-                <input
-                  type="text"
-                  name="fechaExpiracion"
-                  style={styles.input}
-                  value={formData.fechaExpiracion}
-                  onChange={handleInputChange}
-                  placeholder="MM/AA"
-                />
-              </div>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
-                <label style={styles.label}>CVV</label>
-                <input
-                  type="text"
-                  name="cvv"
-                  style={styles.input}
-                  value={formData.cvv}
-                  onChange={handleInputChange}
-                  placeholder="123"
-                />
-              </div>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Nombre del Titular</label>
-              <input
-                type="text"
-                name="nombreTitular"
-                style={styles.input}
-                value={formData.nombreTitular}
-                onChange={handleInputChange}
-                placeholder="Como aparece en la tarjeta"
-              />
+            <div style={{ 
+              backgroundColor: '#f0f9ff', 
+              padding: '1.5rem', 
+              borderRadius: '0.5rem',
+              marginBottom: '1.5rem'
+            }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: '#0369a1' }}>Resumen de tu registro:</h4>
+              <p><strong>Nombre:</strong> {formData.nombre}</p>
+              <p><strong>Email:</strong> {formData.email}</p>
+              <p><strong>Laboratorio:</strong> {formData.laboratorio}</p>
+              <p><strong>Plan:</strong> {plan.nombre} ({plan.precio === 0 ? 'Gratuito' : `$${plan.precio}/mes`})</p>
             </div>
 
             <div style={{ 
-              backgroundColor: '#f0f9ff', 
+              backgroundColor: '#f0fdf4', 
               padding: '1rem', 
               borderRadius: '0.375rem',
               marginBottom: '1.5rem'
             }}>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#0369a1' }}>
-                💳 Pago seguro procesado con encriptación SSL. No almacenamos los datos de tu tarjeta.
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+                {plan.precio === 0 
+                  ? '✅ Tu plan gratuito de 30 días está listo. Puedes actualizar en cualquier momento.'
+                  : '💳 Para planes de pago, te contactaremos para configurar tu método de pago.'
+                }
               </p>
             </div>
           </>
         )}
 
-        {paso === 2 && plan.precio === 0 && (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <h3>¡Plan Gratuito Activado!</h3>
-            <p>Tu plan gratuito de 30 días está listo. Puedes actualizar en cualquier momento.</p>
-          </div>
-        )}
-
         <div style={styles.buttonGroup}>
           {paso > 1 && (
             <button 
-              style={styles.buttonSecondary}
+              style={{
+                ...styles.button,
+                ...styles.buttonSecondary,
+                ...(cargando ? styles.buttonDisabled : {})
+              }}
               onClick={() => setPaso(paso - 1)}
+              disabled={cargando}
             >
               Atrás
             </button>
@@ -476,12 +509,15 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
             style={{
               ...styles.button,
               ...styles.buttonPrimary,
+              ...((paso === 1 && !validarPaso1()) ? styles.buttonDisabled : {}),
+              ...(cargando ? styles.buttonDisabled : {}),
               marginLeft: 'auto'
             }}
             onClick={handleSiguiente}
-            disabled={paso === 1 && !validarPaso1()}
+            disabled={(paso === 1 && !validarPaso1()) || cargando}
           >
-            {paso === 2 ? 'Completar Registro' : 'Siguiente'}
+            {cargando ? 'Procesando...' : 
+             paso === 2 ? 'Completar Registro' : 'Siguiente'}
           </button>
         </div>
       </div>
