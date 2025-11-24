@@ -1,5 +1,7 @@
+// App.tsx - VERSIÓN CORREGIDA
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { supabase } from './lib/supabase';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import GestionClinicas from './components/GestionClinicas';
@@ -13,6 +15,7 @@ import RecuperacionCuenta from './components/RecuperacionCuenta';
 import LandingPage from './components/LandingPage';
 import Registro from './components/Registro';
 import AdminPanel from './components/AdminPanel';
+import GestionPrecios from './components/GestionPrecios';
 import './App.css';
 
 interface User {
@@ -24,93 +27,184 @@ interface User {
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentModule, setCurrentModule] = useState<string>('landing');
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-      setCurrentModule('dashboard');
-    }
+    // Verificar sesión activa al cargar
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const userData = {
+          id: session.user.id,
+          email: session.user.email!,
+          nombre: session.user.user_metadata?.nombre || session.user.email!.split('@')[0],
+          rol: session.user.user_metadata?.rol || 'cliente'
+        };
+        setCurrentUser(userData);
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+      }
+    };
+
+    checkSession();
+
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const userData = {
+            id: session.user.id,
+            email: session.user.email!,
+            nombre: session.user.user_metadata?.nombre || session.user.email!.split('@')[0],
+            rol: session.user.user_metadata?.rol || 'cliente'
+          };
+          setCurrentUser(userData);
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+        } else {
+          setCurrentUser(null);
+          localStorage.removeItem('currentUser');
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    setCurrentModule('dashboard');
     localStorage.setItem('currentUser', JSON.stringify(user));
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setCurrentModule('landing');
     localStorage.removeItem('currentUser');
   };
 
-  const handleNavigate = (module: string) => {
-    setCurrentModule(module);
-  };
-
-  const handleBack = () => {
-    setCurrentModule('dashboard');
-  };
-
-  if (currentModule === 'landing') {
-    return <LandingPage />;
-  }
-
-  if (currentModule === 'login') {
-    return <Login onLogin={handleLogin} onBack={() => setCurrentModule('landing')} />;
-  }
-
-  if (currentModule === 'registro') {
-    return <Registro onRegister={handleLogin} onBack={() => setCurrentModule('landing')} />;
-  }
-
-  if (currentModule === 'recuperacion') {
-    return <RecuperacionCuenta onBack={() => setCurrentModule('login')} />;
-  }
-
-  if (currentModule === 'admin') {
-    return <AdminPanel onBack={handleBack} />;
-  }
-
   return (
     <div className="App">
-      {currentModule === 'dashboard' && currentUser && (
-        <Dashboard 
-          user={currentUser}
-          onNavigate={handleNavigate} 
-          onLogout={handleLogout} 
+      <Routes>
+        {/* Rutas públicas */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        <Route path="/registro" element={<Registro onRegister={handleLogin} />} />
+        <Route 
+          path="/recuperacion" 
+          element={<RecuperacionCuenta onBack={() => window.history.back()} />} 
         />
-      )}
-      
-      {currentModule === 'clinicas' && (
-        <GestionClinicas onBack={handleBack} />
-      )}
-      
-      {currentModule === 'dentistas' && (
-        <GestionDentistas onBack={handleBack} />
-      )}
-      
-      {currentModule === 'laboratoristas' && (
-        <GestionLaboratoristas onBack={handleBack} />
-      )}
-      
-      {currentModule === 'servicios' && (
-        <GestionServicios onBack={handleBack} />
-      )}
-      
-      {currentModule === 'trabajos' && (
-        <GestionTrabajos onBack={handleBack} />
-      )}
-      
-      {currentModule === 'gestion-suscripciones' && (
-        <GestionSuscripciones onBack={handleBack} />
-      )}
-      
-      {currentModule === 'suscripciones' && (
-        <Suscripciones onBack={handleBack} />
-      )}
+        
+        {/* Rutas protegidas */}
+        <Route 
+          path="/dashboard" 
+          element={
+            currentUser ? (
+              <Dashboard user={currentUser} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        <Route 
+          path="/clinicas" 
+          element={
+            currentUser ? (
+              <GestionClinicas />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        <Route 
+          path="/dentistas" 
+          element={
+            currentUser ? (
+              <GestionDentistas />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        <Route 
+          path="/laboratoristas" 
+          element={
+            currentUser ? (
+              <GestionLaboratoristas />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        <Route 
+          path="/servicios" 
+          element={
+            currentUser ? (
+              <GestionServicios />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        <Route 
+          path="/trabajos" 
+          element={
+            currentUser ? (
+              <GestionTrabajos />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+
+        <Route 
+          path="/gestion-suscripciones" 
+          element={
+            currentUser ? (
+              <GestionSuscripciones />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        <Route 
+          path="/suscripciones" 
+          element={
+            currentUser ? (
+              <Suscripciones />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+<Route 
+  path="/precios" 
+  element={
+    currentUser ? (
+      <GestionPrecios />
+    ) : (
+      <Navigate to="/login" />
+    )
+  } 
+/>
+
+        <Route 
+          path="/admin" 
+          element={
+            currentUser?.rol === 'admin' ? (
+              <AdminPanel onBack={() => window.history.back()} />
+            ) : (
+              <Navigate to="/dashboard" />
+            )
+          } 
+        />
+        
+        {/* Redirección por defecto */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
     </div>
   );
 }
