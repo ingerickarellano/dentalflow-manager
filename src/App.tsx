@@ -1,9 +1,9 @@
-// App.tsx - VERSIÓN CORREGIDA
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import CrearTrabajo from './components/CrearTrabajo';
 import GestionClinicas from './components/GestionClinicas';
 import GestionDentistas from './components/GestionDentistas';
 import GestionLaboratoristas from './components/GestionLaboratoristas';
@@ -12,10 +12,12 @@ import GestionTrabajos from './components/GestionTrabajos';
 import GestionSuscripciones from './components/GestionSuscripciones';
 import Suscripciones from './components/Suscripciones';
 import RecuperacionCuenta from './components/RecuperacionCuenta';
+import Reportes from './components/Reportes';
 import LandingPage from './components/LandingPage';
 import Registro from './components/Registro';
 import AdminPanel from './components/AdminPanel';
 import GestionPrecios from './components/GestionPrecios';
+import OpcionesCuenta from './components/OpcionesCuenta';
 import './App.css';
 
 interface User {
@@ -27,6 +29,7 @@ interface User {
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Verificar sesión activa al cargar
@@ -98,6 +101,18 @@ function App() {
           element={
             currentUser ? (
               <Dashboard user={currentUser} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        {/* Ruta para CrearTrabajo */}
+        <Route 
+          path="/crear-trabajo" 
+          element={
+            currentUser ? (
+              <CrearTrabajo />
             ) : (
               <Navigate to="/login" />
             )
@@ -180,17 +195,28 @@ function App() {
             )
           } 
         />
+
+        <Route 
+          path="/precios" 
+          element={
+            currentUser ? (
+              <GestionPrecios />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+
 <Route 
-  path="/precios" 
+  path="/configuracion" 
   element={
     currentUser ? (
-      <GestionPrecios />
+      <OpcionesCuenta onBack={() => navigate('/dashboard')} />
     ) : (
       <Navigate to="/login" />
     )
   } 
 />
-
         <Route 
           path="/admin" 
           element={
@@ -198,6 +224,27 @@ function App() {
               <AdminPanel onBack={() => window.history.back()} />
             ) : (
               <Navigate to="/dashboard" />
+            )
+          } 
+        />
+
+<Route 
+  path="/opciones-cuenta" 
+  element={
+    currentUser ? (
+      <OpcionesCuenta onBack={() => navigate('/dashboard')} />
+    ) : (
+      <Navigate to="/login" />
+    )
+  } 
+/>
+        <Route 
+          path="/reportes" 
+          element={
+            currentUser ? (
+              <Reportes onBack={() => navigate('/dashboard')} />
+            ) : (
+              <Navigate to="/login" />
             )
           } 
         />

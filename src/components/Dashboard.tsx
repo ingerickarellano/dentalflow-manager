@@ -217,14 +217,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       title: '📋 Crear Lista de Trabajo',
       description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
       color: '#06b6d4',
-      path: '/trabajos'
+      path: '/crear-trabajo'  // ✅ CORREGIDO: Ahora apunta a /crear-trabajo
     },
     {
       id: 'trabajos-proceso',
       title: '🔧 Trabajos en Proceso',
       description: 'Control y seguimiento de todos los trabajos dentales en producción.',
       color: '#10b981',
-      path: '/trabajos'
+      path: '/trabajos'  // Este se mantiene para la gestión general
     },
     {
       id: 'laboratoristas',
@@ -277,14 +277,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       title: '📋 Crear Lista de Trabajo',
       description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
       color: '#06b6d4',
-      path: '/trabajos'
+      path: '/crear-trabajo'  // ✅ CORREGIDO: Ahora apunta a /crear-trabajo
     },
     {
       id: 'trabajos-proceso',
       title: '🔧 Mis Trabajos en Proceso',
       description: 'Control y seguimiento de tus trabajos dentales en producción.',
       color: '#10b981',
-      path: '/trabajos'
+      path: '/trabajos'  // Este se mantiene para la gestión general
     },
     {
       id: 'laboratoristas',
