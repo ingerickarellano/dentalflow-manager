@@ -38,13 +38,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       backgroundColor: 'white',
       padding: '1.5rem',
       borderRadius: '0.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      marginBottom: '2rem'
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      marginBottom: '2rem',
+      border: '1px solid #e2e8f0'
     },
     title: {
       color: '#1e293b',
       fontSize: '1.5rem',
-      fontWeight: 'bold',
+      fontWeight: '600',
       margin: 0
     },
     subtitle: {
@@ -52,21 +53,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       marginTop: '0.5rem'
     },
     userInfo: {
-      backgroundColor: '#dbeafe',
+      backgroundColor: '#f1f5f9',
       padding: '1rem',
       borderRadius: '0.5rem',
       marginTop: '1rem',
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
+      alignItems: 'center',
+      border: '1px solid #e2e8f0'
     },
     userRole: {
-      backgroundColor: '#2563eb',
+      backgroundColor: '#475569',
       color: 'white',
       padding: '0.25rem 0.75rem',
       borderRadius: '1rem',
       fontSize: '0.75rem',
-      fontWeight: '600'
+      fontWeight: '500'
     },
     adminBadge: {
       backgroundColor: '#dc2626',
@@ -74,7 +76,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       padding: '0.25rem 0.5rem',
       borderRadius: '0.25rem',
       fontSize: '0.75rem',
-      fontWeight: '600',
+      fontWeight: '500',
       marginLeft: '0.5rem'
     },
     searchContainer: {
@@ -85,17 +87,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       width: '100%',
       padding: '0.75rem 1rem',
       paddingLeft: '2.5rem',
-      border: '1px solid #d1d5db',
+      border: '1px solid #cbd5e1',
       borderRadius: '0.5rem',
       fontSize: '1rem',
-      boxSizing: 'border-box' as const
+      boxSizing: 'border-box' as const,
+      backgroundColor: '#f8fafc'
     },
     searchIcon: {
       position: 'absolute' as const,
       left: '0.75rem',
       top: '50%',
       transform: 'translateY(-50%)',
-      color: '#9ca3af'
+      color: '#64748b'
     },
     grid: {
       display: 'grid',
@@ -107,14 +110,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       backgroundColor: 'white',
       padding: '1.5rem',
       borderRadius: '0.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      borderLeft: '4px solid #2563eb',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      borderLeft: '4px solid #475569',
       cursor: 'pointer',
-      transition: 'transform 0.2s, box-shadow 0.2s'
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      border: '1px solid #e2e8f0'
     },
     cardHover: {
       transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
     },
     cardTitle: {
       color: '#1e293b',
@@ -124,32 +128,40 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     },
     cardContent: {
       color: '#64748b',
-      margin: '0 0 1rem 0'
+      margin: '0 0 1rem 0',
+      lineHeight: '1.5'
     },
     button: {
-      backgroundColor: '#2563eb',
+      backgroundColor: '#475569',
       color: 'white',
       padding: '0.5rem 1rem',
       border: 'none',
       borderRadius: '0.375rem',
       cursor: 'pointer',
-      marginTop: '1rem'
+      marginTop: '1rem',
+      fontWeight: '500',
+      fontSize: '0.875rem',
+      transition: 'background-color 0.2s'
     },
     logoutButton: {
       backgroundColor: '#dc2626',
       color: 'white',
-      padding: '0.5rem 1rem',
+      padding: '0.75rem 1.5rem',
       border: 'none',
       borderRadius: '0.375rem',
       cursor: 'pointer',
-      marginTop: '2rem'
+      marginTop: '2rem',
+      fontWeight: '500',
+      fontSize: '0.875rem',
+      transition: 'background-color 0.2s'
     },
     resultadosContainer: {
       marginTop: '1.5rem',
       backgroundColor: 'white',
       borderRadius: '0.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      padding: '1.5rem'
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      padding: '1.5rem',
+      border: '1px solid #e2e8f0'
     },
     resultadoSection: {
       marginBottom: '1.5rem'
@@ -166,17 +178,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       borderRadius: '0.375rem',
       marginBottom: '0.5rem',
       cursor: 'pointer',
-      transition: 'background-color 0.2s'
+      transition: 'background-color 0.2s',
+      backgroundColor: '#f8fafc'
     },
     resultadoItemHover: {
-      backgroundColor: '#f3f4f6'
+      backgroundColor: '#f1f5f9'
     },
     badge: {
       display: 'inline-block',
       padding: '0.25rem 0.5rem',
       borderRadius: '0.25rem',
       fontSize: '0.75rem',
-      fontWeight: '600',
+      fontWeight: '500',
       marginLeft: '0.5rem'
     },
     badgePendiente: {
@@ -200,6 +213,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
       gap: '1rem',
       marginTop: '1.5rem'
+    },
+    statNumber: {
+      fontSize: '1.5rem',
+      fontWeight: '600',
+      color: '#1e293b'
+    },
+    statLabel: {
+      fontSize: '0.875rem',
+      color: '#64748b',
+      marginTop: '0.25rem'
     }
   };
 
@@ -209,56 +232,48 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       id: 'clinicas',
       title: '🏥 Clínicas y Dentistas',
       description: 'Gestiona todas las clínicas dentales y odontólogos del sistema.',
-      color: '#2563eb',
       path: '/clinicas'
     },
     {
       id: 'crear-trabajo',
       title: '📋 Crear Lista de Trabajo',
       description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
-      color: '#06b6d4',
-      path: '/crear-trabajo'  // ✅ CORREGIDO: Ahora apunta a /crear-trabajo
+      path: '/crear-trabajo'
     },
     {
       id: 'trabajos-proceso',
       title: '🔧 Trabajos en Proceso',
       description: 'Control y seguimiento de todos los trabajos dentales en producción.',
-      color: '#10b981',
-      path: '/trabajos'  // Este se mantiene para la gestión general
+      path: '/trabajos'
     },
     {
       id: 'laboratoristas',
       title: '👨‍🔧 Laboratoristas',
       description: 'Gestiona todos los técnicos y laboratoristas del sistema.',
-      color: '#f97316',
       path: '/laboratoristas'
     },
     {
       id: 'precios',
       title: '💰 Lista de Precios',
       description: 'Configura precios base y personalizados por clínica/dentista.',
-      color: '#8b5cf6',
       path: '/precios'
     },
     {
       id: 'reportes',
       title: '📊 Reportes',
       description: 'Genera reportes de trabajos, ingresos y productividad.',
-      color: '#f59e0b',
       path: '/reportes'
     },
     {
       id: 'admin',
       title: '👑 Panel de Administración',
       description: 'Gestiona usuarios, membresías y ve estadísticas del sistema.',
-      color: '#dc2626',
       path: '/admin'
     },
     {
       id: 'opciones-cuenta',
       title: '⚙️ Opciones del Sistema',
       description: 'Configura la información general del sistema y parámetros.',
-      color: '#6b7280',
       path: '/configuracion'
     }
   ];
@@ -269,49 +284,42 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       id: 'clinicas',
       title: '🏥 Mis Clínicas y Dentistas',
       description: 'Gestiona tus clínicas dentales y odontólogos asociados.',
-      color: '#2563eb',
       path: '/clinicas'
     },
     {
       id: 'crear-trabajo',
       title: '📋 Crear Lista de Trabajo',
       description: 'Crea nuevos trabajos seleccionando clínica, dentista y servicios.',
-      color: '#06b6d4',
-      path: '/crear-trabajo'  // ✅ CORREGIDO: Ahora apunta a /crear-trabajo
+      path: '/crear-trabajo'
     },
     {
       id: 'trabajos-proceso',
       title: '🔧 Mis Trabajos en Proceso',
       description: 'Control y seguimiento de tus trabajos dentales en producción.',
-      color: '#10b981',
-      path: '/trabajos'  // Este se mantiene para la gestión general
+      path: '/trabajos'
     },
     {
       id: 'laboratoristas',
       title: '👨‍🔧 Mis Laboratoristas',
       description: 'Gestiona los técnicos y laboratoristas de tu laboratorio.',
-      color: '#f97316',
       path: '/laboratoristas'
     },
     {
       id: 'precios',
       title: '💰 Mi Lista de Precios',
       description: 'Configura tus precios base y personalizados.',
-      color: '#8b5cf6',
       path: '/precios'
     },
     {
       id: 'reportes',
       title: '📊 Mis Reportes',
       description: 'Genera reportes de tus trabajos, ingresos y productividad.',
-      color: '#f59e0b',
       path: '/reportes'
     },
     {
       id: 'opciones-cuenta',
       title: '⚙️ Opciones de la Cuenta',
       description: 'Configura la información de tu laboratorio, logo y porcentajes.',
-      color: '#6b7280',
       path: '/configuracion'
     }
   ];
@@ -416,6 +424,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     navigate(path);
   };
 
+  // 🔧 FUNCIÓN CORREGIDA PARA CERRAR SESIÓN
+  const handleLogout = () => {
+    if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+      localStorage.removeItem('dentalflow-user');
+      onLogout(); // Esto debería redirigir al landing page
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -450,28 +466,28 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         {/* Estadísticas rápidas */}
         <div style={styles.statsGrid}>
           <div style={{textAlign: 'center'}}>
-            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb'}}>
+            <div style={styles.statNumber}>
               {estadisticas.totalClinicas}
             </div>
-            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Clínicas</div>
+            <div style={styles.statLabel}>Clínicas</div>
           </div>
           <div style={{textAlign: 'center'}}>
-            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981'}}>
+            <div style={styles.statNumber}>
               {estadisticas.totalDentistas}
             </div>
-            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Dentistas</div>
+            <div style={styles.statLabel}>Dentistas</div>
           </div>
           <div style={{textAlign: 'center'}}>
-            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b'}}>
+            <div style={styles.statNumber}>
               {estadisticas.totalTrabajos}
             </div>
-            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Trabajos</div>
+            <div style={styles.statLabel}>Trabajos</div>
           </div>
           <div style={{textAlign: 'center'}}>
-            <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626'}}>
+            <div style={{...styles.statNumber, color: '#dc2626'}}>
               {estadisticas.trabajosPendientes}
             </div>
-            <div style={{fontSize: '0.875rem', color: '#64748b'}}>Pendientes</div>
+            <div style={styles.statLabel}>Pendientes</div>
           </div>
         </div>
 
@@ -609,7 +625,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 key={module.id}
                 style={{
                   ...styles.card,
-                  borderLeft: `4px solid ${module.color}`,
                   ...(hoveredCard === module.id ? styles.cardHover : {})
                 }}
                 onMouseEnter={() => setHoveredCard(module.id)}
@@ -619,10 +634,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 <h3 style={styles.cardTitle}>{module.title}</h3>
                 <p style={styles.cardContent}>{module.description}</p>
                 <button 
-                  style={{
-                    ...styles.button,
-                    backgroundColor: module.color
-                  }}
+                  style={styles.button}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleModuleClick(module.path);
@@ -644,12 +656,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           <div style={{ textAlign: 'center', marginTop: '3rem' }}>
             <button 
               style={styles.logoutButton}
-              onClick={() => {
-                if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-                  localStorage.removeItem('dentalflow-user');
-                  onLogout();
-                }
-              }}
+              onClick={handleLogout} // ✅ USAR LA FUNCIÓN CORREGIDA
             >
               Cerrar Sesión
             </button>
