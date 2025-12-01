@@ -1,144 +1,345 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { PayPalProvider } from './PayPalProvider';
+import { supabase } from './lib/supabase';
+
+// Componentes de páginas
+import LandingPage from './components/LandingPage';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Clinicas from './components/Clinicas';
-import CrearTrabajo from './components/CrearTrabajo';
-import TrabajosProceso from './components/TrabajosProceso';
-import Laboratoristas from './components/Laboratoristas';
-import ListaPrecios from './components/ListaPrecios';
-import Reportes from './components/Reportes';
-import OpcionesCuenta from './components/OpcionesCuenta';
-import Suscripciones from './components/Suscripciones';
-import GestionSuscripciones from './components/GestionSuscripciones';
+import Registro from './components/Registro';
 import RecuperacionCuenta from './components/RecuperacionCuenta';
-import './App.css';
+import Dashboard from './components/Dashboard';
 
-// Componente principal que maneja la lógica de la aplicación
-function AppContent() {
-  const [user, setUser] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+// Componentes de gestión
+import CrearTrabajo from './components/CrearTrabajo';
+import GestionClinicas from './components/GestionClinicas';
+import GestionDentistas from './components/GestionDentistas';
+import GestionLaboratoristas from './components/GestionLaboratoristas';
+import GestionServicios from './components/GestionServicios';
+import GestionTrabajos from './components/GestionTrabajos';
+import GestionSuscripciones from './components/GestionSuscripciones';
+import Suscripciones from './components/Suscripciones';
+import GestionPrecios from './components/GestionPrecios';
+import OpcionesCuenta from './components/OpcionesCuenta';
+import Reportes from './components/Reportes';
+import AdminPanel from './components/AdminPanel';
+
+// Interfaces
+interface User {
+  id: string;
+  email: string;
+  nombre: string;
+  rol: string;
+  suscripcion_activa?: boolean;
+  fecha_expiracion?: string;
+}
+
+// Componente principal de la aplicación
+const App: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Verificar si el usuario está logueado al cargar la aplicación
+  // Verificar sesión al cargar
   useEffect(() => {
-    const savedUser = localStorage.getItem('dentalflow-user');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-      setIsLoggedIn(true);
+    checkAuthSession();
+  }, []);
+
+  const checkAuthSession = async (): Promise<void> => {
+    try {
+      console.log('🔍 Verificando sesión...');
+      setLoading(true);
       
-      // Si está en la raíz, redirigir al dashboard
-      if (location.pathname === '/') {
-        navigate('/dashboard', { replace: true });
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ Error verificando sesión:', error);
+        setLoading(false);
+        return;
       }
-    } else {
-      // Si no está logueado, redirigir al login
-      if (location.pathname !== '/login') {
-        navigate('/login', { replace: true });
+
+      console.log('📋 Sesión obtenida:', session ? 'Sí' : 'No');
+
+      if (session?.user) {
+        console.log('👤 Usuario encontrado, cargando datos...');
+        await loadUserData(session.user);
+      } else {
+        console.log('🚫 No hay usuario en sesión');
+        localStorage.removeItem('currentUser');
+        setCurrentUser(null);
       }
+
+    } catch (error: any) {
+      console.error('💥 Error en checkAuthSession:', error);
+    } finally {
+      console.log('✅ Verificación de sesión completada');
+      setLoading(false);
     }
-  }, [navigate, location]);
-
-  const handleLogin = (userData: any) => {
-    setUser(userData);
-    setIsLoggedIn(true);
-    // Guardar usuario en localStorage
-    localStorage.setItem('dentalflow-user', JSON.stringify(userData));
-    navigate('/dashboard', { replace: true });
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setIsLoggedIn(false);
-    localStorage.removeItem('dentalflow-user');
-    navigate('/login', { replace: true });
+  const loadUserData = async (user: any): Promise<void> => {
+    try {
+      console.log('📥 Cargando datos del usuario...');
+      
+      // Intentar cargar el perfil del usuario
+      const { data: userProfile, error } = await supabase
+        .from('perfiles_usuarios')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.log('⚠️ No se pudo cargar el perfil (puede ser normal para usuarios nuevos):', error.message);
+        // No es crítico si no existe el perfil aún
+      }
+
+      const userData: User = {
+        id: user.id,
+        email: user.email!,
+        nombre: userProfile?.nombre || user.user_metadata?.nombre || user.email!.split('@')[0],
+        rol: userProfile?.rol || user.user_metadata?.rol || 'cliente',
+        suscripcion_activa: userProfile?.suscripcion_activa || false,
+        fecha_expiracion: userProfile?.fecha_expiracion
+      };
+
+      console.log('👤 Datos de usuario cargados:', userData);
+      setCurrentUser(userData);
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+
+    } catch (error: any) {
+      console.error('❌ Error cargando datos de usuario:', error);
+      // Si hay error, crear usuario básico
+      const basicUser: User = {
+        id: user.id,
+        email: user.email!,
+        nombre: user.user_metadata?.nombre || user.email!.split('@')[0],
+        rol: 'cliente',
+        suscripcion_activa: false
+      };
+      setCurrentUser(basicUser);
+      localStorage.setItem('currentUser', JSON.stringify(basicUser));
+    }
   };
 
-  const handleNavigate = (module: string) => {
-    navigate(`/${module}`);
-  };
+  // Escuchar cambios de autenticación
+  useEffect(() => {
+    console.log('🔔 Configurando listener de autenticación...');
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 Cambio en autenticación:', event);
+        
+        switch (event) {
+          case 'SIGNED_IN':
+            console.log('🔓 Usuario firmó sesión');
+            if (session?.user) {
+              await loadUserData(session.user);
+              navigate('/dashboard');
+            }
+            break;
 
-  const handleBack = () => {
+          case 'SIGNED_OUT':
+            console.log('🔒 Usuario cerró sesión');
+            setCurrentUser(null);
+            localStorage.removeItem('currentUser');
+            navigate('/');
+            break;
+
+          case 'USER_UPDATED':
+            console.log('📝 Usuario actualizado');
+            if (session?.user) {
+              await loadUserData(session.user);
+            }
+            break;
+
+          default:
+            console.log('⚡ Otro evento de auth:', event);
+        }
+      }
+    );
+
+    return () => {
+      console.log('🧹 Limpiando listener de autenticación');
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  const handleLogin = (user: User): void => {
+    console.log('👤 Login manual:', user.email);
+    setCurrentUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
     navigate('/dashboard');
   };
 
-  // Si no está logueado, mostrar solo la ruta de login
-  if (!isLoggedIn) {
+  const handleRegister = (user: User): void => {
+    console.log('👤 Registro manual:', user.email);
+    setCurrentUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    navigate('/dashboard');
+  };
+
+  const handleLogout = async (): Promise<void> => {
+    try {
+      console.log('🚪 Cerrando sesión...');
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setCurrentUser(null);
+      localStorage.removeItem('currentUser');
+      navigate('/');
+    } catch (error: any) {
+      console.error('❌ Error al cerrar sesión:', error);
+    }
+  };
+
+  // Componentes de ruta protegidos
+  const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (!currentUser) {
+      return <Navigate to="/login" replace />;
+    }
+    return <>{children}</>;
+  };
+
+  const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (!currentUser || currentUser.rol !== 'admin') {
+      return <Navigate to="/dashboard" replace />;
+    }
+    return <>{children}</>;
+  };
+
+  const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (currentUser) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    return <>{children}</>;
+  };
+
+  // Timeout de seguridad para evitar carga infinita
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('⏰ Timeout de carga - Forzando finalización');
+        setLoading(false);
+      }
+    }, 5000); // 5 segundos máximo
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
+  // Pantalla de carga
+  if (loading) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route path="*" element={<Login onLogin={handleLogin} />} />
-      </Routes>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#f8fafc',
+        fontFamily: "'Inter', sans-serif"
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            fontSize: '3rem', 
+            marginBottom: '1rem',
+            animation: 'pulse 2s infinite'
+          }}>
+            🦷
+          </div>
+          <div style={{ 
+            color: '#64748b', 
+            fontSize: '1.125rem',
+            fontWeight: '500',
+            marginBottom: '1rem'
+          }}>
+            Cargando DentalFlow...
+          </div>
+          <div style={{ 
+            color: '#94a3b8', 
+            fontSize: '0.875rem' 
+          }}>
+            Si tarda mucho, <a href="/" style={{color: '#3b82f6', cursor: 'pointer'}}>recarga la página</a>
+          </div>
+          <style>
+            {`
+              @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+              }
+            `}
+          </style>
+        </div>
+      </div>
     );
   }
 
-  // Rutas cuando el usuario está logueado
-  return (
-    <Routes>
-      <Route 
-        path="/dashboard" 
-        element={<Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />} 
-      />
-      <Route 
-        path="/clinicas" 
-        element={<Clinicas onBack={handleBack} />} 
-      />
-      <Route 
-        path="/crear-trabajo" 
-        element={<CrearTrabajo onBack={handleBack} />} 
-      />
-      <Route 
-        path="/trabajos-proceso" 
-        element={<TrabajosProceso onBack={handleBack} />} 
-      />
-      <Route 
-        path="/laboratoristas" 
-        element={<Laboratoristas onBack={handleBack} />} 
-      />
-      <Route 
-        path="/precios" 
-        element={<ListaPrecios onBack={handleBack} />}
-      />
-      <Route 
-        path="/reportes" 
-        element={<Reportes onBack={handleBack} />}
-      />
-      {/* AGREGAR ESTA NUEVA RUTA - línea 79 aprox */}
-      <Route 
-        path="/opciones-cuenta" 
-        element={<OpcionesCuenta onBack={handleBack} />}
-      />
-      <Route 
-  path="/recuperacion-cuenta" 
-  element={<RecuperacionCuenta onBack={() => navigate('/login')} />}
-/>
+  console.log('🎉 Aplicación cargada - Usuario:', currentUser ? currentUser.email : 'No autenticado');
 
-      {/* Redirigir cualquier ruta no definida al dashboard */}
-      <Route path="*" element={<Dashboard onNavigate={handleNavigate} onLogout={handleLogout} />} />
-    <Route 
-  path="/suscripciones" 
-  element={<Suscripciones onBack={handleBack} />}
-/>
-<Route 
-  path="/gestion-suscripciones" 
-  element={<GestionSuscripciones onBack={handleBack} />}
-/>
-    </Routes>
-    
-  );
-}
-
-// Componente principal que envuelve con Router
-function App() {
   return (
-    <Router>
+    <PayPalProvider>
       <div className="App">
-        <AppContent />
+        <Routes>
+          {/* Rutas públicas */}
+          <Route path="/" element={<LandingPage />} />
+          
+          <Route 
+            path="/login" 
+            element={
+              <PublicRoute>
+                <Login onLogin={handleLogin} />
+              </PublicRoute>
+            } 
+          />
+          
+          <Route 
+            path="/registro" 
+            element={
+              <PublicRoute>
+                <Registro onRegister={handleRegister} />
+              </PublicRoute>
+            } 
+          />
+          
+          <Route 
+            path="/recuperacion" 
+            element={
+              <PublicRoute>
+                <RecuperacionCuenta onBack={() => navigate('/login')} />
+              </PublicRoute>
+            } 
+          />
+
+          {/* Rutas protegidas */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                {currentUser && <Dashboard user={currentUser} onLogout={handleLogout} />}
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Rutas de gestión - versión simplificada */}
+          <Route path="/crear-trabajo" element={<ProtectedRoute><CrearTrabajo /></ProtectedRoute>} />
+          <Route path="/clinicas" element={<ProtectedRoute><GestionClinicas /></ProtectedRoute>} />
+          <Route path="/dentistas" element={<ProtectedRoute><GestionDentistas /></ProtectedRoute>} />
+          <Route path="/laboratoristas" element={<ProtectedRoute><GestionLaboratoristas /></ProtectedRoute>} />
+          <Route path="/servicios" element={<ProtectedRoute><GestionServicios /></ProtectedRoute>} />
+          <Route path="/trabajos" element={<ProtectedRoute><GestionTrabajos /></ProtectedRoute>} />
+          <Route path="/gestion-suscripciones" element={<ProtectedRoute><GestionSuscripciones /></ProtectedRoute>} />
+          <Route path="/suscripciones" element={<ProtectedRoute><Suscripciones /></ProtectedRoute>} />
+          <Route path="/precios" element={<ProtectedRoute><GestionPrecios /></ProtectedRoute>} />
+          <Route path="/configuracion" element={<ProtectedRoute><OpcionesCuenta onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
+          <Route path="/reportes" element={<ProtectedRoute><Reportes onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminPanel onBack={() => navigate('/dashboard')} /></AdminRoute>} />
+          <Route path="/opciones-cuenta" element={<ProtectedRoute><OpcionesCuenta onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
+
+          {/* Ruta por defecto */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
-    </Router>
+    </PayPalProvider>
   );
-}
+};
 
 export default App;

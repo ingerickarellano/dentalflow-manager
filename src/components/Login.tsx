@@ -1,44 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// Base de datos temporal de usuarios
-const users = [
-  { username: 'admin', password: 'admin123', name: 'Administrador' },
-  { username: 'tecnico', password: 'tecnico123', name: 'Técnico Dental' },
-  { username: 'erick', password: 'dental2024', name: 'Erick' }
-];
+import { supabase } from '../lib/supabase';
 
 interface LoginProps {
   onLogin: (user: any) => void;
+  onBack?: () => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
   // Verificar si ya está logueado
   useEffect(() => {
-    const savedUser = localStorage.getItem('dentalflow-user');
-    if (savedUser) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [navigate]);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const userData = {
+          id: session.user.id,
+          email: session.user.email!,
+          nombre: session.user.user_metadata?.nombre || session.user.email!.split('@')[0],
+          rol: session.user.user_metadata?.rol || 'cliente'
+        };
+        onLogin(userData);
+        navigate('/dashboard', { replace: true });
+      }
+    };
 
-  const handleLogin = (e: React.FormEvent) => {
+    checkSession();
+  }, [navigate, onLogin]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setCargando(true);
     
-    // Verificar credenciales
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (user) {
-      console.log('✅ Login exitoso:', user.name);
-      onLogin(user);
-    } else {
-      setError('Usuario o contraseña incorrectos');
-      console.log('❌ Login fallido');
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        const userData = {
+          id: data.user.id,
+          email: data.user.email!,
+          nombre: data.user.user_metadata?.nombre || data.user.email!.split('@')[0],
+          rol: data.user.user_metadata?.rol || 'cliente'
+        };
+        
+        console.log('✅ Login exitoso:', userData.nombre);
+        onLogin(userData);
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (error: any) {
+      console.error('❌ Error login:', error);
+      setError(error.message || 'Credenciales incorrectas');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleRecovery = async () => {
+    if (!email.trim()) {
+      setError('Por favor ingresa tu email para recuperar la contraseña');
+      return;
+    }
+
+    try {
+      setCargando(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      alert('Se ha enviado un enlace de recuperación a tu email');
+      navigate('/recuperacion');
+    } catch (error: any) {
+      setError(error.message || 'Error al enviar el email de recuperación');
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -117,19 +164,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       borderRadius: '0.375rem',
       fontSize: '1rem',
       cursor: 'pointer',
-      transition: 'background-color 0.2s'
+      transition: 'background-color 0.2s',
+      opacity: 1
+    },
+    buttonDisabled: {
+      backgroundColor: '#9ca3af',
+      cursor: 'not-allowed',
+      opacity: 0.6
     },
     buttonHover: {
       backgroundColor: '#1d4ed8'
-    },
-    usersInfo: {
-      marginTop: '1rem',
-      padding: '1rem',
-      backgroundColor: '#f8fafc',
-      borderRadius: '0.375rem',
-      fontSize: '0.75rem',
-      color: '#64748b',
-      marginBottom: '1rem'
     },
     recoveryLink: {
       textAlign: 'center' as const,
@@ -143,6 +187,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     },
     linkHover: {
       textDecoration: 'underline'
+    },
+    registerSection: {
+      textAlign: 'center' as const,
+      marginTop: '1.5rem',
+      paddingTop: '1rem',
+      borderTop: '1px solid #e5e7eb'
+    },
+    registerText: {
+      color: '#6b7280',
+      fontSize: '0.875rem',
+      marginBottom: '0.5rem'
     }
   };
 
@@ -158,15 +213,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         
         <form onSubmit={handleLogin}>
           <div style={styles.formGroup}>
-            <label style={styles.label}>Usuario</label>
+            <label style={styles.label}>Email</label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={{...styles.input, ...(error ? styles.inputError : {})}}
-              placeholder="Ingresa tu usuario"
+              placeholder="tu@email.com"
               onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
               onBlur={(e) => e.target.style.boxShadow = ''}
+              required
             />
           </div>
           
@@ -180,16 +236,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               placeholder="Ingresa tu contraseña"
               onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
               onBlur={(e) => e.target.style.boxShadow = ''}
+              required
             />
           </div>
           
           <button 
             type="submit" 
-            style={styles.button}
-            onMouseOver={(e) => Object.assign(e.currentTarget.style, styles.buttonHover)}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+            style={{
+              ...styles.button,
+              ...(cargando ? styles.buttonDisabled : {})
+            }}
+            onMouseOver={(e) => !cargando && Object.assign(e.currentTarget.style, styles.buttonHover)}
+            onMouseOut={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#2563eb')}
+            disabled={cargando}
           >
-            Iniciar Sesión
+            {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
 
@@ -199,18 +260,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             style={styles.link}
             onMouseOver={(e) => Object.assign(e.currentTarget.style, styles.linkHover)}
             onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
-            onClick={() => navigate('/recuperacion-cuenta')}
+            onClick={handleRecovery}
           >
             ¿Olvidaste tu contraseña?
           </a>
         </div>
 
-        {/* Información de usuarios de prueba */}
-        <div style={styles.usersInfo}>
-          <strong>Usuarios de prueba:</strong>
-          <br />👑 admin / admin123
-          <br />🔧 tecnico / tecnico123  
-          <br />👤 erick / dental2024
+        {/* Sección de registro */}
+        <div style={styles.registerSection}>
+          <p style={styles.registerText}>¿No tienes una cuenta?</p>
+          <a 
+            style={styles.link}
+            onMouseOver={(e) => Object.assign(e.currentTarget.style, styles.linkHover)}
+            onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+            onClick={() => navigate('/registro')}
+          >
+            Crear cuenta nueva
+          </a>
         </div>
       </div>
     </div>

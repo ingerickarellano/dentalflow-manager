@@ -1,97 +1,113 @@
 import React, { useState } from 'react';
-import { AuthService } from '../services/authService';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 interface RegistroProps {
-  onBack: () => void;
-  onRegistroExitoso: () => void;
+  onRegister?: (user: any) => void;
+  onBack?: () => void;
 }
 
-const Registro: React.FC<RegistroProps> = ({ onBack, onRegistroExitoso }) => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    nombre: '',
-    laboratorio: '',
-    telefono: '',
-    rut: ''
-  });
+const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const planSeleccionado = searchParams.get('plan') || 'gratuita';
+
+  const [paso, setPaso] = useState(1);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+  
+  const [formData, setFormData] = useState({
+    nombre: '',
+    email: '',
+    telefono: '',
+    laboratorio: '',
+    password: '',
+    confirmPassword: '',
+  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
-  const handleRegistro = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setCargando(true);
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      setCargando(false);
-      return;
+  // Planes de suscripción actualizados
+  const planesMembresia = [
+    {
+      id: 'gratuita',
+      nombre: 'Prueba Gratuita',
+      precio: 0,
+      duracion: '30 días',
+      caracteristicas: [
+        'Hasta 5 clínicas',
+        'Hasta 10 trabajos mensuales',
+        'Soporte básico por email',
+        'Acceso a reportes básicos'
+      ]
+    },
+    {
+      id: 'profesional',
+      nombre: 'Plan Profesional',
+      precio: 49,
+      duracion: 'mes',
+      caracteristicas: [
+        'Clínicas ilimitadas',
+        'Trabajos ilimitados',
+        'Soporte prioritario',
+        'Reportes avanzados',
+        'Backup automático'
+      ]
     }
+  ];
 
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      setCargando(false);
-      return;
-    }
-
-    try {
-      await AuthService.registrarUsuario(
-        formData.email,
-        formData.password,
-        formData.nombre,
-        formData.laboratorio
-      );
-      
-      alert('🎉 ¡Registro exitoso! Tienes 7 días de prueba gratuita.');
-      onRegistroExitoso();
-    } catch (error: any) {
-      setError(error.message || 'Error al registrar usuario');
-    } finally {
-      setCargando(false);
-    }
-  };
+  const [plan] = useState(planesMembresia.find(p => p.id === planSeleccionado) || planesMembresia[0]);
 
   const styles = {
     container: {
-      padding: '20px',
-      backgroundColor: '#f8fafc',
       minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
+      backgroundColor: '#f8fafc',
+      padding: '2rem'
     },
-    card: {
-      backgroundColor: 'white',
-      padding: '3rem',
-      borderRadius: '1rem',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-      width: '100%',
-      maxWidth: '500px'
-    },
-    title: {
-      color: '#1e293b',
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
+    header: {
       textAlign: 'center' as const,
       marginBottom: '2rem'
     },
-    backButton: {
-      backgroundColor: '#64748b',
-      color: 'white',
-      padding: '0.5rem 1rem',
-      border: 'none',
-      borderRadius: '0.375rem',
-      cursor: 'pointer',
-      marginBottom: '2rem'
+    title: {
+      color: '#1e293b',
+      fontSize: '2rem',
+      fontWeight: 'bold'
+    },
+    progress: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: '3rem'
+    },
+    progressStep: {
+      display: 'flex',
+      alignItems: 'center'
+    },
+    stepNumber: {
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      backgroundColor: '#e2e8f0',
+      color: '#64748b',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 'bold',
+      margin: '0 1rem'
+    },
+    stepNumberActive: {
+      backgroundColor: '#2563eb',
+      color: 'white'
+    },
+    stepLine: {
+      width: '100px',
+      height: '2px',
+      backgroundColor: '#e2e8f0'
+    },
+    formContainer: {
+      maxWidth: '600px',
+      margin: '0 auto',
+      backgroundColor: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
     },
     formGroup: {
       marginBottom: '1.5rem'
@@ -105,28 +121,68 @@ const Registro: React.FC<RegistroProps> = ({ onBack, onRegistroExitoso }) => {
     },
     input: {
       width: '100%',
-      padding: '0.75rem 1rem',
+      padding: '0.75rem',
       border: '1px solid #d1d5db',
-      borderRadius: '0.5rem',
+      borderRadius: '0.375rem',
       fontSize: '1rem',
       boxSizing: 'border-box' as const
     },
-    button: {
-      width: '100%',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      padding: '0.75rem 1rem',
-      border: 'none',
+    inputError: {
+      borderColor: '#dc2626'
+    },
+    planSummary: {
+      backgroundColor: '#f0f9ff',
+      padding: '1.5rem',
       borderRadius: '0.5rem',
+      marginBottom: '2rem',
+      border: '1px solid #e0f2fe'
+    },
+    planName: {
+      fontWeight: 'bold',
+      color: '#0369a1',
+      fontSize: '1.25rem',
+      margin: '0 0 0.5rem 0'
+    },
+    planPrice: {
+      fontSize: '2rem',
+      fontWeight: 'bold',
+      color: '#2563eb',
+      margin: '0 0 1rem 0'
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '1rem',
+      justifyContent: 'space-between',
+      marginTop: '2rem'
+    },
+    button: {
+      padding: '1rem 2rem',
+      border: 'none',
+      borderRadius: '0.375rem',
       fontSize: '1rem',
-      fontWeight: '600',
+      fontWeight: 'bold',
       cursor: 'pointer',
-      marginTop: '1rem',
       opacity: 1
     },
     buttonDisabled: {
       opacity: 0.6,
       cursor: 'not-allowed'
+    },
+    buttonPrimary: {
+      backgroundColor: '#2563eb',
+      color: 'white'
+    },
+    buttonSecondary: {
+      backgroundColor: '#64748b',
+      color: 'white'
+    },
+    success: {
+      textAlign: 'center' as const,
+      padding: '3rem'
+    },
+    successIcon: {
+      fontSize: '4rem',
+      marginBottom: '1rem'
     },
     error: {
       color: '#dc2626',
@@ -136,111 +192,334 @@ const Registro: React.FC<RegistroProps> = ({ onBack, onRegistroExitoso }) => {
       padding: '0.5rem',
       backgroundColor: '#fef2f2',
       borderRadius: '0.375rem'
-    },
-    infoBox: {
-      backgroundColor: '#f0f9ff',
-      padding: '1.5rem',
-      borderRadius: '0.5rem',
-      border: '1px solid #e0f2fe',
-      marginBottom: '2rem'
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError('');
+  };
+
+  const validarPaso1 = () => {
+    return formData.nombre && 
+           formData.email && 
+           formData.laboratorio && 
+           formData.password && 
+           formData.password === formData.confirmPassword &&
+           formData.password.length >= 6;
+  };
+
+  const handleSiguiente = () => {
+    if (paso === 1 && validarPaso1()) {
+      setPaso(2);
+    } else if (paso === 2) {
+      handleFinalizar();
+    }
+  };
+
+  const handleFinalizar = async () => {
+    setCargando(true);
+    setError('');
+
+    try {
+      // Registrar usuario en Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password,
+        options: {
+          data: {
+            nombre: formData.nombre.trim(),
+            laboratorio: formData.laboratorio.trim(),
+            telefono: formData.telefono.trim(),
+            plan: plan.id,
+            rol: 'cliente'
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        console.log('✅ Usuario creado con UUID:', data.user.id);
+        
+        setPaso(3);
+        
+        // Llamar al callback onRegister si existe
+        if (onRegister) {
+          const userData = {
+            id: data.user.id, // UUID de Supabase
+            email: data.user.email!,
+            nombre: formData.nombre.trim(),
+            laboratorio: formData.laboratorio.trim(),
+            rol: 'cliente',
+            plan: plan.id
+          };
+          onRegister(userData);
+        }
+        
+        // Redirección automática
+        setTimeout(() => {
+          navigate('/login');
+        }, 5000);
+      }
+    } catch (error: any) {
+      console.error('❌ Error en registro:', error);
+      setError(error.message || 'Error al crear la cuenta. Por favor intenta nuevamente.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  if (paso === 3) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.formContainer}>
+          <div style={styles.success}>
+            <div style={styles.successIcon}>🎉</div>
+            <h2>¡Registro Exitoso!</h2>
+            <p>Tu cuenta ha sido creada exitosamente.</p>
+            <p>Hemos enviado un email de confirmación a <strong>{formData.email}</strong></p>
+            <p>Por favor verifica tu email antes de iniciar sesión.</p>
+            <p>Redirigiendo al login en 5 segundos...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
-        <button style={styles.backButton} onClick={onBack}>
-          ← Volver al Login
-        </button>
-
-        <h1 style={styles.title}>Crear Cuenta</h1>
-
-        <div style={styles.infoBox}>
-          <h3 style={{ color: '#0369a1', marginBottom: '0.5rem' }}>🚀 Prueba Gratuita</h3>
-          <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-            Regístrate y obtén <strong>7 días gratis</strong> para probar todas las funciones del sistema.
-          </p>
-        </div>
-
-        {error && <div style={styles.error}>{error}</div>}
-
-        <form onSubmit={handleRegistro}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Email *</label>
-            <input
-              type="email"
-              name="email"
-              style={styles.input}
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="tu@laboratorio.com"
-              required
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Contraseña *</label>
-            <input
-              type="password"
-              name="password"
-              style={styles.input}
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Mínimo 6 caracteres"
-              required
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Confirmar Contraseña *</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              style={styles.input}
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Repite tu contraseña"
-              required
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Nombre Completo *</label>
-            <input
-              type="text"
-              name="nombre"
-              style={styles.input}
-              value={formData.nombre}
-              onChange={handleChange}
-              placeholder="Tu nombre completo"
-              required
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Nombre del Laboratorio *</label>
-            <input
-              type="text"
-              name="laboratorio"
-              style={styles.input}
-              value={formData.laboratorio}
-              onChange={handleChange}
-              placeholder="Ej: Laboratorio Dental Pro"
-              required
-            />
-          </div>
-
+      <div style={styles.header}>
+        <h1 style={styles.title}>Registro en DentalFlow</h1>
+        {onBack && (
           <button 
             style={{
               ...styles.button,
-              ...(cargando ? styles.buttonDisabled : {})
+              ...styles.buttonSecondary,
+              marginTop: '1rem'
             }}
-            type="submit"
+            onClick={onBack}
             disabled={cargando}
           >
-            {cargando ? 'Creando cuenta...' : '🎉 Comenzar Prueba Gratuita'}
+            ← Volver al Inicio
           </button>
-        </form>
+        )}
+      </div>
+
+      {/* Progress Bar */}
+      <div style={styles.progress}>
+        <div style={styles.progressStep}>
+          <div style={{
+            ...styles.stepNumber,
+            ...(paso >= 1 ? styles.stepNumberActive : {})
+          }}>1</div>
+          <div style={styles.stepLine}></div>
+        </div>
+        <div style={styles.progressStep}>
+          <div style={{
+            ...styles.stepNumber,
+            ...(paso >= 2 ? styles.stepNumberActive : {})
+          }}>2</div>
+        </div>
+      </div>
+
+      <div style={styles.formContainer}>
+        {error && <div style={styles.error}>{error}</div>}
+
+        {/* Resumen del Plan */}
+        <div style={styles.planSummary}>
+          <h3 style={styles.planName}>{plan.nombre}</h3>
+          <div style={styles.planPrice}>
+            {plan.precio === 0 ? 'Gratis' : `$${plan.precio}`}
+            <span style={{ fontSize: '1rem', color: '#64748b' }}>
+              {plan.precio > 0 ? '/mes' : ` - ${plan.duracion}`}
+            </span>
+          </div>
+          <ul style={{ margin: 0, paddingLeft: '1rem' }}>
+            {plan.caracteristicas.slice(0, 3).map((caract, idx) => (
+              <li key={idx} style={{ marginBottom: '0.25rem' }}>✓ {caract}</li>
+            ))}
+          </ul>
+        </div>
+
+        {paso === 1 && (
+          <>
+            <h3 style={{ marginBottom: '1.5rem' }}>Información Personal</h3>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Nombre Completo *</label>
+              <input
+                type="text"
+                name="nombre"
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.nombre ? styles.inputError : {})
+                }}
+                value={formData.nombre}
+                onChange={handleInputChange}
+                placeholder="Tu nombre completo"
+                required
+                disabled={cargando}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Email *</label>
+              <input
+                type="email"
+                name="email"
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.email ? styles.inputError : {})
+                }}
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="tu@email.com"
+                required
+                disabled={cargando}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Teléfono</label>
+              <input
+                type="tel"
+                name="telefono"
+                style={styles.input}
+                value={formData.telefono}
+                onChange={handleInputChange}
+                placeholder="+1 (555) 123-4567"
+                disabled={cargando}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Nombre del Laboratorio *</label>
+              <input
+                type="text"
+                name="laboratorio"
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.laboratorio ? styles.inputError : {})
+                }}
+                value={formData.laboratorio}
+                onChange={handleInputChange}
+                placeholder="Ej: Tecnodentille"
+                required
+                disabled={cargando}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Contraseña *</label>
+              <input
+                type="password"
+                name="password"
+                style={{
+                  ...styles.input,
+                  ...(error && !formData.password ? styles.inputError : {})
+                }}
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="Mínimo 6 caracteres"
+                required
+                disabled={cargando}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Confirmar Contraseña *</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                style={{
+                  ...styles.input,
+                  ...(error && formData.password !== formData.confirmPassword ? styles.inputError : {})
+                }}
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Repite tu contraseña"
+                required
+                disabled={cargando}
+              />
+            </div>
+
+            {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
+              <div style={styles.error}>Las contraseñas no coinciden</div>
+            )}
+
+            {formData.password && formData.password.length < 6 && (
+              <div style={styles.error}>La contraseña debe tener al menos 6 caracteres</div>
+            )}
+          </>
+        )}
+
+        {paso === 2 && (
+          <>
+            <h3 style={{ marginBottom: '1.5rem' }}>Confirmación</h3>
+            
+            <div style={{ 
+              backgroundColor: '#f0f9ff', 
+              padding: '1.5rem', 
+              borderRadius: '0.5rem',
+              marginBottom: '1.5rem'
+            }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: '#0369a1' }}>Resumen de tu registro:</h4>
+              <p><strong>Nombre:</strong> {formData.nombre}</p>
+              <p><strong>Email:</strong> {formData.email}</p>
+              <p><strong>Laboratorio:</strong> {formData.laboratorio}</p>
+              <p><strong>Plan:</strong> {plan.nombre} ({plan.precio === 0 ? 'Gratuito' : `$${plan.precio}/mes`})</p>
+            </div>
+
+            <div style={{ 
+              backgroundColor: '#f0fdf4', 
+              padding: '1rem', 
+              borderRadius: '0.375rem',
+              marginBottom: '1.5rem'
+            }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+                {plan.precio === 0 
+                  ? '✅ Tu plan gratuito de 30 días está listo. Puedes actualizar en cualquier momento.'
+                  : '💳 Para planes de pago, te contactaremos para configurar tu método de pago.'
+                }
+              </p>
+            </div>
+          </>
+        )}
+
+        <div style={styles.buttonGroup}>
+          {paso > 1 && (
+            <button 
+              style={{
+                ...styles.button,
+                ...styles.buttonSecondary,
+                ...(cargando ? styles.buttonDisabled : {})
+              }}
+              onClick={() => setPaso(paso - 1)}
+              disabled={cargando}
+            >
+              Atrás
+            </button>
+          )}
+          
+          <button 
+            style={{
+              ...styles.button,
+              ...styles.buttonPrimary,
+              ...((paso === 1 && !validarPaso1()) ? styles.buttonDisabled : {}),
+              ...(cargando ? styles.buttonDisabled : {}),
+              marginLeft: 'auto'
+            }}
+            onClick={handleSiguiente}
+            disabled={(paso === 1 && !validarPaso1()) || cargando}
+          >
+            {cargando ? 'Procesando...' : 
+             paso === 2 ? 'Completar Registro' : 'Siguiente'}
+          </button>
+        </div>
       </div>
     </div>
   );
