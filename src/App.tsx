@@ -67,6 +67,13 @@ const App: React.FC = () => {
         console.log('🚫 No hay usuario en sesión');
         localStorage.removeItem('currentUser');
         setCurrentUser(null);
+        // Si estamos en una ruta protegida y no hay usuario, redirigir al landing
+        if (window.location.pathname !== '/' && 
+            window.location.pathname !== '/login' && 
+            window.location.pathname !== '/registro' &&
+            window.location.pathname !== '/recuperacion') {
+          navigate('/');
+        }
       }
 
     } catch (error: any) {
@@ -164,29 +171,12 @@ const App: React.FC = () => {
     };
   }, [navigate]);
 
-  const handleLogin = (user: User): void => {
-    console.log('👤 Login manual:', user.email);
-    setCurrentUser(user);
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    navigate('/dashboard');
-  };
-
-  const handleRegister = (user: User): void => {
-    console.log('👤 Registro manual:', user.email);
-    setCurrentUser(user);
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    navigate('/dashboard');
-  };
-
   const handleLogout = async (): Promise<void> => {
     try {
       console.log('🚪 Cerrando sesión...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
-      setCurrentUser(null);
-      localStorage.removeItem('currentUser');
-      navigate('/');
+      // La redirección la manejará onAuthStateChange
     } catch (error: any) {
       console.error('❌ Error al cerrar sesión:', error);
     }
@@ -286,7 +276,7 @@ const App: React.FC = () => {
             path="/login" 
             element={
               <PublicRoute>
-                <Login onLogin={handleLogin} />
+                <Login />
               </PublicRoute>
             } 
           />
@@ -295,7 +285,7 @@ const App: React.FC = () => {
             path="/registro" 
             element={
               <PublicRoute>
-                <Registro onRegister={handleRegister} />
+                <Registro onBack={() => navigate('/')} />
               </PublicRoute>
             } 
           />

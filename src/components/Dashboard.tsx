@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { clinicas, dentistas, trabajos, servicios, laboratoristas } from '../data/database';
+import { supabase } from '../lib/supabase';
+
+interface DashboardUser {
+  id: string;
+  email: string;
+  nombre: string;
+  rol: string;
+  plan?: string;
+  fecha_expiracion?: string;
+  suscripcion_activa?: boolean;
+  laboratorio?: string;
+  telefono?: string;
+}
 
 interface DashboardProps {
-  user: {
-    id: string;
-    email: string;
-    nombre: string;
-    rol: string;
-  };
+  user: DashboardUser;
   onLogout: () => void;
 }
 
@@ -25,8 +32,101 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     trabajos: []
   });
 
+  const [estadisticas, setEstadisticas] = useState({
+    totalClinicas: 0,
+    totalDentistas: 0,
+    totalTrabajos: 0,
+    trabajosPendientes: 0,
+    trabajosProduccion: 0,
+    trabajosTerminados: 0
+  });
+
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [hoveredResultado, setHoveredResultado] = useState<string | null>(null);
+  const [cargandoEstadisticas, setCargandoEstadisticas] = useState(true);
+  const [cargandoBusqueda, setCargandoBusqueda] = useState(false);
+
+  // Calcular días restantes
+  const calcularDiasRestantes = () => {
+    if (!user.fecha_expiracion) return 0;
+    const expiracion = new Date(user.fecha_expiracion);
+    const hoy = new Date();
+    const diferencia = expiracion.getTime() - hoy.getTime();
+    return Math.ceil(diferencia / (1000 * 60 * 60 * 24));
+  };
+
+  const diasRestantes = calcularDiasRestantes();
+  const tieneSuscripcionActiva = user.suscripcion_activa && diasRestantes > 0;
+
+  // Cargar estadísticas desde Supabase
+  useEffect(() => {
+    cargarEstadisticas();
+  }, [user.id]);
+
+  const cargarEstadisticas = async () => {
+    try {
+      setCargandoEstadisticas(true);
+
+      if (user.rol === 'admin') {
+        // Admin ve todo
+        const [
+          { count: clinicasCount },
+          { count: dentistasCount },
+          { count: trabajosCount },
+          { count: trabajosPendientes },
+          { count: trabajosProduccion },
+          { count: trabajosTerminados }
+        ] = await Promise.all([
+          supabase.from('clinicas').select('*', { count: 'exact', head: true }),
+          supabase.from('dentistas').select('*', { count: 'exact', head: true }),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente'),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }).eq('estado', 'produccion'),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }).eq('estado', 'terminado')
+        ]);
+
+        setEstadisticas({
+          totalClinicas: clinicasCount || 0,
+          totalDentistas: dentistasCount || 0,
+          totalTrabajos: trabajosCount || 0,
+          trabajosPendientes: trabajosPendientes || 0,
+          trabajosProduccion: trabajosProduccion || 0,
+          trabajosTerminados: trabajosTerminados || 0
+        });
+      } else {
+        // Cliente solo ve sus datos
+        const [
+          { count: clinicasCount },
+          { count: dentistasCount },
+          { count: trabajosCount },
+          { count: trabajosPendientes },
+          { count: trabajosProduccion },
+          { count: trabajosTerminados }
+        ] = await Promise.all([
+          supabase.from('clinicas').select('*', { count: 'exact', head: true }).eq('usuario_id', user.id),
+          supabase.from('dentistas').select('*', { count: 'exact', head: true }).eq('usuario_id', user.id),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }).eq('usuario_id', user.id),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }).eq('usuario_id', user.id).eq('estado', 'pendiente'),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }).eq('usuario_id', user.id).eq('estado', 'produccion'),
+          supabase.from('trabajos').select('*', { count: 'exact', head: true }).eq('usuario_id', user.id).eq('estado', 'terminado')
+        ]);
+
+        setEstadisticas({
+          totalClinicas: clinicasCount || 0,
+          totalDentistas: dentistasCount || 0,
+          totalTrabajos: trabajosCount || 0,
+          trabajosPendientes: trabajosPendientes || 0,
+          trabajosProduccion: trabajosProduccion || 0,
+          trabajosTerminados: trabajosTerminados || 0
+        });
+      }
+
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+    } finally {
+      setCargandoEstadisticas(false);
+    }
+  };
 
   const styles = {
     container: {
@@ -40,7 +140,83 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       borderRadius: '0.5rem',
       boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
       marginBottom: '2rem',
-      border: '1px solid #e2e8f0'
+      border: '1px solid #e2e8f0',
+      position: 'relative' as const
+    },
+    userInfoTop: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '1.5rem'
+    },
+    userInfoMain: {
+      flex: 1
+    },
+    logoutButtonTop: {
+      backgroundColor: '#dc2626',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      fontWeight: '500',
+      fontSize: '0.875rem',
+      transition: 'background-color 0.2s',
+      marginLeft: '1rem',
+      '&:hover': {
+        backgroundColor: '#b91c1c'
+      }
+    },
+    userDetails: {
+      backgroundColor: '#f1f5f9',
+      padding: '1.5rem',
+      borderRadius: '0.5rem',
+      marginBottom: '1rem',
+      border: '1px solid #e2e8f0',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '1rem'
+    },
+    userDetailItem: {
+      marginBottom: '0.5rem'
+    },
+    userDetailLabel: {
+      fontSize: '0.75rem',
+      color: '#64748b',
+      fontWeight: '500',
+      textTransform: 'uppercase' as const,
+      marginBottom: '0.25rem'
+    },
+    userDetailValue: {
+      fontSize: '1rem',
+      color: '#1e293b',
+      fontWeight: '600'
+    },
+    planBadge: {
+      display: 'inline-block',
+      padding: '0.25rem 0.75rem',
+      borderRadius: '1rem',
+      fontSize: '0.75rem',
+      fontWeight: '500',
+      marginLeft: '0.5rem'
+    },
+    planActive: {
+      backgroundColor: '#10b981',
+      color: 'white'
+    },
+    planInactive: {
+      backgroundColor: '#ef4444',
+      color: 'white'
+    },
+    daysBadge: {
+      display: 'inline-block',
+      padding: '0.25rem 0.75rem',
+      borderRadius: '1rem',
+      fontSize: '0.75rem',
+      fontWeight: '500',
+      marginLeft: '0.5rem',
+      backgroundColor: diasRestantes > 7 ? '#10b981' : diasRestantes > 3 ? '#f59e0b' : '#ef4444',
+      color: 'white'
     },
     title: {
       color: '#1e293b',
@@ -51,24 +227,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     subtitle: {
       color: '#64748b',
       marginTop: '0.5rem'
-    },
-    userInfo: {
-      backgroundColor: '#f1f5f9',
-      padding: '1rem',
-      borderRadius: '0.5rem',
-      marginTop: '1rem',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      border: '1px solid #e2e8f0'
-    },
-    userRole: {
-      backgroundColor: '#475569',
-      color: 'white',
-      padding: '0.25rem 0.75rem',
-      borderRadius: '1rem',
-      fontSize: '0.75rem',
-      fontWeight: '500'
     },
     adminBadge: {
       backgroundColor: '#dc2626',
@@ -143,18 +301,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       fontSize: '0.875rem',
       transition: 'background-color 0.2s'
     },
-    logoutButton: {
-      backgroundColor: '#dc2626',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      border: 'none',
-      borderRadius: '0.375rem',
-      cursor: 'pointer',
-      marginTop: '2rem',
-      fontWeight: '500',
-      fontSize: '0.875rem',
-      transition: 'background-color 0.2s'
-    },
     resultadosContainer: {
       marginTop: '1.5rem',
       backgroundColor: 'white',
@@ -223,6 +369,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       fontSize: '0.875rem',
       color: '#64748b',
       marginTop: '0.25rem'
+    },
+    loadingIndicator: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '2rem'
     }
   };
 
@@ -327,64 +479,94 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   // Elegir los módulos según el rol
   const modules = user?.rol === 'admin' ? modulesAdmin : modulesCliente;
 
-  // Estadísticas para mostrar en el dashboard
-  const estadisticas = {
-    totalClinicas: clinicas.length,
-    totalDentistas: dentistas.length,
-    totalTrabajos: trabajos.length,
-    trabajosPendientes: trabajos.filter(t => t.estado === 'pendiente').length,
-    trabajosProduccion: trabajos.filter(t => t.estado === 'produccion').length,
-    trabajosTerminados: trabajos.filter(t => t.estado === 'terminado').length
-  };
-
-  const handleBuscar = (termino: string) => {
+  // Buscar de forma optimizada
+  const handleBuscar = async (termino: string) => {
     setTerminoBusqueda(termino);
+    setCargandoBusqueda(true);
 
     if (!termino.trim()) {
       setResultados({ pacientes: [], clinicas: [], trabajos: [] });
+      setCargandoBusqueda(false);
       return;
     }
 
     const terminoLower = termino.toLowerCase();
 
-    // Buscar en pacientes
-    const pacientesEncontrados = trabajos.filter((trabajo: any) =>
-      trabajo.paciente.toLowerCase().includes(terminoLower)
-    ).map((trabajo: any) => ({
-      ...trabajo,
-      tipo: 'paciente',
-      clinica: clinicas.find(c => c.id === trabajo.clinicaId)?.nombre,
-      dentista: dentistas.find(d => d.id === trabajo.dentistaId)?.nombre,
-      laboratorista: laboratoristas.find(l => l.id === trabajo.laboratoristaId)?.nombre
-    }));
+    try {
+      // Consultas mejoradas para Supabase
+      const baseQuery = user.rol === 'admin' 
+        ? {} 
+        : { usuario_id: user.id };
 
-    // Buscar en clínicas
-    const clinicasEncontradas = clinicas.filter((clinica: any) =>
-      clinica.nombre.toLowerCase().includes(terminoLower) ||
-      clinica.direccion.toLowerCase().includes(terminoLower) ||
-      clinica.email.toLowerCase().includes(terminoLower)
-    );
+      // 1. Buscar clínicas
+      const { data: clinicasData, error: clinicasError } = await supabase
+        .from('clinicas')
+        .select('*')
+        .or(`nombre.ilike.%${terminoLower}%,email.ilike.%${terminoLower}%,telefono.ilike.%${terminoLower}%`)
+        .eq(user.rol !== 'admin' ? 'usuario_id' : '', user.rol !== 'admin' ? user.id : '')
+        .limit(10);
 
-    // Buscar en trabajos (por estado o servicios)
-    const trabajosEncontrados = trabajos.filter((trabajo: any) =>
-      trabajo.estado.toLowerCase().includes(terminoLower) ||
-      trabajo.servicios.some((servicioTrabajo: any) => {
-        const servicio = servicios.find(s => s.id === servicioTrabajo.servicioId);
-        return servicio?.nombre.toLowerCase().includes(terminoLower);
-      })
-    ).map((trabajo: any) => ({
-      ...trabajo,
-      tipo: 'trabajo',
-      clinica: clinicas.find(c => c.id === trabajo.clinicaId)?.nombre,
-      dentista: dentistas.find(d => d.id === trabajo.dentistaId)?.nombre,
-      laboratorista: laboratoristas.find(l => l.id === trabajo.laboratoristaId)?.nombre
-    }));
+      // 2. Buscar trabajos (pacientes y trabajos generales)
+      const { data: trabajosData, error: trabajosError } = await supabase
+        .from('trabajos')
+        .select(`
+          *,
+          clinicas (nombre, direccion),
+          dentistas (nombre, especialidad),
+          laboratoristas (nombre)
+        `)
+        .or(`paciente.ilike.%${terminoLower}%,estado.ilike.%${terminoLower}%`)
+        .eq(user.rol !== 'admin' ? 'usuario_id' : '', user.rol !== 'admin' ? user.id : '')
+        .limit(20);
 
-    setResultados({
-      pacientes: pacientesEncontrados,
-      clinicas: clinicasEncontradas,
-      trabajos: trabajosEncontrados
-    });
+      // Separar resultados: pacientes y trabajos
+      const pacientesEncontrados = trabajosData?.filter(t => 
+        t.paciente.toLowerCase().includes(terminoLower)
+      ) || [];
+
+      const trabajosEncontrados = trabajosData?.filter(t => 
+        t.estado.toLowerCase().includes(terminoLower) ||
+        (t.paciente.toLowerCase().includes(terminoLower) && 
+         !pacientesEncontrados.some(p => p.id === t.id))
+      ) || [];
+
+      // Formatear resultados
+      const resultadosFormateados = {
+        clinicas: clinicasData || [],
+        pacientes: pacientesEncontrados.map((p: any) => ({
+          ...p,
+          tipo: 'paciente',
+          clinica: p.clinicas?.nombre || 'Sin clínica',
+          dentista: p.dentistas?.nombre || 'Sin dentista',
+          laboratorista: p.laboratoristas?.nombre || 'No asignado',
+          direccionClinica: p.clinicas?.direccion || ''
+        })),
+        trabajos: trabajosEncontrados.map((t: any) => ({
+          ...t,
+          tipo: 'trabajo',
+          clinica: t.clinicas?.nombre || 'Sin clínica',
+          dentista: t.dentistas?.nombre || 'Sin dentista',
+          laboratorista: t.laboratoristas?.nombre || 'No asignado'
+        }))
+      };
+
+      // Log para depuración
+      console.log('Resultados encontrados:', {
+        termino,
+        clinicas: resultadosFormateados.clinicas.length,
+        pacientes: resultadosFormateados.pacientes.length,
+        trabajos: resultadosFormateados.trabajos.length,
+        datos: resultadosFormateados
+      });
+
+      setResultados(resultadosFormateados);
+
+    } catch (error) {
+      console.error('Error en búsqueda:', error);
+      setResultados({ pacientes: [], clinicas: [], trabajos: [] });
+    } finally {
+      setCargandoBusqueda(false);
+    }
   };
 
   const getBadgeStyle = (estado: string) => {
@@ -412,6 +594,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
   };
 
+  const getPlanDisplayName = (plan?: string) => {
+    switch (plan) {
+      case 'gratuita': return 'Prueba Gratuita';
+      case 'profesional': return 'Profesional';
+      case 'enterprise': return 'Empresarial';
+      default: return plan || 'Sin plan';
+    }
+  };
+
   const handleResultadoClick = (tipo: string, item: any) => {
     if (tipo === 'paciente' || tipo === 'trabajo') {
       navigate('/trabajos');
@@ -424,68 +615,110 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     navigate(path);
   };
 
-  // 🔧 FUNCIÓN CORREGIDA PARA CERRAR SESIÓN
   const handleLogout = () => {
     if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-      localStorage.removeItem('dentalflow-user');
-      onLogout(); // Esto debería redirigir al landing page
+      onLogout();
     }
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>
-            Dashboard - DentalFlow Manager
-            {user?.rol === 'admin' && (
-              <span style={styles.adminBadge}>ADMINISTRADOR</span>
-            )}
-          </h1>
-          <p style={styles.subtitle}>
-            {user?.rol === 'admin' 
-              ? 'Sistema de gestión completo - Modo Administrador' 
-              : `Sistema de gestión para ${user?.nombre || 'tu laboratorio'}`
-            }
-          </p>
+        {/* Encabezado superior con información del usuario y botón de logout */}
+        <div style={styles.userInfoTop}>
+          <div style={styles.userInfoMain}>
+            <h1 style={styles.title}>
+              Dashboard - DentalFlow Manager
+              {user?.rol === 'admin' && (
+                <span style={styles.adminBadge}>ADMINISTRADOR</span>
+              )}
+            </h1>
+            <p style={styles.subtitle}>
+              {user?.rol === 'admin' 
+                ? 'Sistema de gestión completo - Modo Administrador' 
+                : `Bienvenido, ${user?.nombre} - ${user?.laboratorio || 'tu laboratorio'}`
+              }
+            </p>
+          </div>
+          
+          <button 
+            style={styles.logoutButtonTop}
+            onClick={handleLogout}
+          >
+            Cerrar Sesión
+          </button>
         </div>
 
-        {/* Información del usuario */}
-        <div style={styles.userInfo}>
-          <div>
-             <strong>👤 {user?.nombre}</strong>
-            <div style={{color: '#64748b', fontSize: '0.875rem'}}>
-             {user?.email}
+        {/* Información detallada del usuario */}
+        <div style={styles.userDetails}>
+          <div style={styles.userDetailItem}>
+            <div style={styles.userDetailLabel}>Email</div>
+            <div style={styles.userDetailValue}>{user?.email}</div>
+          </div>
+          
+          <div style={styles.userDetailItem}>
+            <div style={styles.userDetailLabel}>Plan Actual</div>
+            <div style={styles.userDetailValue}>
+              {getPlanDisplayName(user?.plan)}
+              <span style={{
+                ...styles.planBadge,
+                ...(tieneSuscripcionActiva ? styles.planActive : styles.planInactive)
+              }}>
+                {tieneSuscripcionActiva ? 'ACTIVO' : 'INACTIVO'}
+              </span>
             </div>
           </div>
-          <div style={styles.userRole}>
-            {user?.rol === 'admin' ? '👑 ADMINISTRADOR' : '👤 CLIENTE'}
+          
+          <div style={styles.userDetailItem}>
+            <div style={styles.userDetailLabel}>Días Restantes</div>
+            <div style={styles.userDetailValue}>
+              {diasRestantes > 0 ? diasRestantes : 0} días
+              {diasRestantes > 0 && (
+                <span style={styles.daysBadge}>
+                  {diasRestantes > 7 ? '✔ OK' : diasRestantes > 3 ? '⚠ PRONTO' : '⚠ VENCIDO'}
+                </span>
+              )}
+            </div>
           </div>
+          
+          {user?.laboratorio && (
+            <div style={styles.userDetailItem}>
+              <div style={styles.userDetailLabel}>Laboratorio</div>
+              <div style={styles.userDetailValue}>🏢 {user.laboratorio}</div>
+            </div>
+          )}
+          
+          {user?.telefono && (
+            <div style={styles.userDetailItem}>
+              <div style={styles.userDetailLabel}>Teléfono</div>
+              <div style={styles.userDetailValue}>📞 {user.telefono}</div>
+            </div>
+          )}
         </div>
 
         {/* Estadísticas rápidas */}
         <div style={styles.statsGrid}>
           <div style={{textAlign: 'center'}}>
             <div style={styles.statNumber}>
-              {estadisticas.totalClinicas}
+              {cargandoEstadisticas ? '...' : estadisticas.totalClinicas}
             </div>
             <div style={styles.statLabel}>Clínicas</div>
           </div>
           <div style={{textAlign: 'center'}}>
             <div style={styles.statNumber}>
-              {estadisticas.totalDentistas}
+              {cargandoEstadisticas ? '...' : estadisticas.totalDentistas}
             </div>
             <div style={styles.statLabel}>Dentistas</div>
           </div>
           <div style={{textAlign: 'center'}}>
             <div style={styles.statNumber}>
-              {estadisticas.totalTrabajos}
+              {cargandoEstadisticas ? '...' : estadisticas.totalTrabajos}
             </div>
             <div style={styles.statLabel}>Trabajos</div>
           </div>
           <div style={{textAlign: 'center'}}>
             <div style={{...styles.statNumber, color: '#dc2626'}}>
-              {estadisticas.trabajosPendientes}
+              {cargandoEstadisticas ? '...' : estadisticas.trabajosPendientes}
             </div>
             <div style={styles.statLabel}>Pendientes</div>
           </div>
@@ -509,43 +742,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         <div style={styles.resultadosContainer}>
           <h3 style={{ marginBottom: '1rem', color: '#1e293b' }}>
             Resultados para: "{terminoBusqueda}"
+            {cargandoBusqueda && <span style={{color: '#64748b', fontSize: '0.875rem', marginLeft: '1rem'}}>Buscando...</span>}
           </h3>
 
-          {/* Resultados de Pacientes */}
-          {resultados.pacientes.length > 0 && (
-            <div style={styles.resultadoSection}>
-              <h4 style={styles.resultadoTitle}>👤 Pacientes ({resultados.pacientes.length})</h4>
-              {resultados.pacientes.map((paciente: any, index: number) => (
-                <div
-                  key={`paciente-${index}`}
-                  style={{
-                    ...styles.resultadoItem,
-                    ...(hoveredResultado === `paciente-${index}` ? styles.resultadoItemHover : {})
-                  }}
-                  onMouseEnter={() => setHoveredResultado(`paciente-${index}`)}
-                  onMouseLeave={() => setHoveredResultado(null)}
-                  onClick={() => handleResultadoClick('paciente', paciente)}
-                >
-                  <div>
-                    <strong>{paciente.paciente}</strong>
-                    <span style={getBadgeStyle(paciente.estado)}>
-                      {getEstadoText(paciente.estado)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    {paciente.clinica} • {paciente.dentista}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                    {paciente.servicios.length} servicio(s) • ${paciente.precioTotal}
-                    {paciente.laboratorista && ` • 👨‍🔧 ${paciente.laboratorista}`}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Resultados de Clínicas */}
-          {resultados.clinicas.length > 0 && (
+          {!cargandoBusqueda && resultados.clinicas.length > 0 && (
             <div style={styles.resultadoSection}>
               <h4 style={styles.resultadoTitle}>🏥 Clínicas ({resultados.clinicas.length})</h4>
               {resultados.clinicas.map((clinica: any, index: number) => (
@@ -573,8 +774,41 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             </div>
           )}
 
+          {/* Resultados de Pacientes */}
+          {!cargandoBusqueda && resultados.pacientes.length > 0 && (
+            <div style={styles.resultadoSection}>
+              <h4 style={styles.resultadoTitle}>👤 Pacientes ({resultados.pacientes.length})</h4>
+              {resultados.pacientes.map((paciente: any, index: number) => (
+                <div
+                  key={`paciente-${index}`}
+                  style={{
+                    ...styles.resultadoItem,
+                    ...(hoveredResultado === `paciente-${index}` ? styles.resultadoItemHover : {})
+                  }}
+                  onMouseEnter={() => setHoveredResultado(`paciente-${index}`)}
+                  onMouseLeave={() => setHoveredResultado(null)}
+                  onClick={() => handleResultadoClick('paciente', paciente)}
+                >
+                  <div>
+                    <strong>{paciente.paciente}</strong>
+                    <span style={getBadgeStyle(paciente.estado)}>
+                      {getEstadoText(paciente.estado)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    {paciente.clinica} • {paciente.dentista}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    ${paciente.precio_total || 0}
+                    {paciente.laboratorista && ` • 👨‍🔧 ${paciente.laboratorista}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Resultados de Trabajos */}
-          {resultados.trabajos.length > 0 && (
+          {!cargandoBusqueda && resultados.trabajos.length > 0 && (
             <div style={styles.resultadoSection}>
               <h4 style={styles.resultadoTitle}>🔧 Trabajos ({resultados.trabajos.length})</h4>
               {resultados.trabajos.map((trabajo: any, index: number) => (
@@ -598,7 +832,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     {trabajo.clinica} • {trabajo.dentista}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                    Laboratorista: {trabajo.laboratorista || 'No asignado'} • ${trabajo.precioTotal}
+                    Laboratorista: {trabajo.laboratorista} • ${trabajo.precio_total || 0}
                   </div>
                 </div>
               ))}
@@ -606,7 +840,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           )}
 
           {/* Mensaje cuando no hay resultados */}
-          {resultados.pacientes.length === 0 && 
+          {!cargandoBusqueda && resultados.pacientes.length === 0 && 
            resultados.clinicas.length === 0 && 
            resultados.trabajos.length === 0 && (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
@@ -618,50 +852,39 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
       {/* MÓDULOS DEL SISTEMA (solo se muestran cuando no hay búsqueda activa) */}
       {!terminoBusqueda.trim() && (
-        <>
-          <div style={styles.grid}>
-            {modules.map(module => (
-              <div
-                key={module.id}
-                style={{
-                  ...styles.card,
-                  ...(hoveredCard === module.id ? styles.cardHover : {})
-                }}
-                onMouseEnter={() => setHoveredCard(module.id)}
-                onMouseLeave={() => setHoveredCard(null)}
-                onClick={() => handleModuleClick(module.path)}
-              >
-                <h3 style={styles.cardTitle}>{module.title}</h3>
-                <p style={styles.cardContent}>{module.description}</p>
-                <button 
-                  style={styles.button}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleModuleClick(module.path);
-                  }}
-                >
-                  {module.id === 'clinicas' && (user?.rol === 'admin' ? 'Gestionar Clínicas' : 'Mis Clínicas')}
-                  {module.id === 'crear-trabajo' && 'Crear Trabajo'}
-                  {module.id === 'trabajos-proceso' && (user?.rol === 'admin' ? 'Ver Trabajos' : 'Mis Trabajos')}
-                  {module.id === 'laboratoristas' && (user?.rol === 'admin' ? 'Gestionar Técnicos' : 'Mis Laboratoristas')}
-                  {module.id === 'precios' && (user?.rol === 'admin' ? 'Gestionar Precios' : 'Mis Precios')}
-                  {module.id === 'reportes' && (user?.rol === 'admin' ? 'Ver Reportes' : 'Mis Reportes')}
-                  {module.id === 'admin' && 'Panel de Admin'}
-                  {module.id === 'opciones-cuenta' && (user?.rol === 'admin' ? 'Configurar Sistema' : 'Configurar Cuenta')}
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-            <button 
-              style={styles.logoutButton}
-              onClick={handleLogout} // ✅ USAR LA FUNCIÓN CORREGIDA
+        <div style={styles.grid}>
+          {modules.map(module => (
+            <div
+              key={module.id}
+              style={{
+                ...styles.card,
+                ...(hoveredCard === module.id ? styles.cardHover : {})
+              }}
+              onMouseEnter={() => setHoveredCard(module.id)}
+              onMouseLeave={() => setHoveredCard(null)}
+              onClick={() => handleModuleClick(module.path)}
             >
-              Cerrar Sesión
-            </button>
-          </div>
-        </>
+              <h3 style={styles.cardTitle}>{module.title}</h3>
+              <p style={styles.cardContent}>{module.description}</p>
+              <button 
+                style={styles.button}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleModuleClick(module.path);
+                }}
+              >
+                {module.id === 'clinicas' && (user?.rol === 'admin' ? 'Gestionar Clínicas' : 'Mis Clínicas')}
+                {module.id === 'crear-trabajo' && 'Crear Trabajo'}
+                {module.id === 'trabajos-proceso' && (user?.rol === 'admin' ? 'Ver Trabajos' : 'Mis Trabajos')}
+                {module.id === 'laboratoristas' && (user?.rol === 'admin' ? 'Gestionar Técnicos' : 'Mis Laboratoristas')}
+                {module.id === 'precios' && (user?.rol === 'admin' ? 'Gestionar Precios' : 'Mis Precios')}
+                {module.id === 'reportes' && (user?.rol === 'admin' ? 'Ver Reportes' : 'Mis Reportes')}
+                {module.id === 'admin' && 'Panel de Admin'}
+                {module.id === 'opciones-cuenta' && (user?.rol === 'admin' ? 'Configurar Sistema' : 'Configurar Cuenta')}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -3,11 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 interface RegistroProps {
-  onRegister?: (user: any) => void;
   onBack?: () => void;
 }
 
-const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
+const Registro: React.FC<RegistroProps> = ({ onBack }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const planSeleccionado = searchParams.get('plan') || 'gratuita';
@@ -236,7 +235,8 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
             telefono: formData.telefono.trim(),
             plan: plan.id,
             rol: 'cliente'
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/login` // Redirige al login después de confirmar email
         }
       });
 
@@ -245,29 +245,49 @@ const Registro: React.FC<RegistroProps> = ({ onRegister, onBack }) => {
       if (data.user) {
         console.log('✅ Usuario creado con UUID:', data.user.id);
         
-        setPaso(3);
-        
-        // Llamar al callback onRegister si existe
-        if (onRegister) {
-          const userData = {
-            id: data.user.id, // UUID de Supabase
-            email: data.user.email!,
+        // Crear perfil en la tabla perfiles_usuarios
+        const { error: profileError } = await supabase
+          .from('perfiles_usuarios')
+          .insert({
+            id: data.user.id,
+            email: formData.email.trim(),
             nombre: formData.nombre.trim(),
             laboratorio: formData.laboratorio.trim(),
+            telefono: formData.telefono || null,
             rol: 'cliente',
-            plan: plan.id
-          };
-          onRegister(userData);
+            plan: plan.id,
+            suscripcion_activa: plan.id === 'gratuita', // Gratis está activa
+            fecha_expiracion: plan.id === 'gratuita' 
+              ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 días
+              : null
+          });
+
+        if (profileError) {
+          console.error('Error creando perfil:', profileError);
+          // No lanzamos error porque el usuario se creó en auth
         }
+
+        setPaso(3);
         
-        // Redirección automática
+        // No hacemos redirección automática, el usuario debe confirmar email
+        // setTimeout se mantiene solo como fallback
         setTimeout(() => {
           navigate('/login');
         }, 5000);
       }
     } catch (error: any) {
       console.error('❌ Error en registro:', error);
-      setError(error.message || 'Error al crear la cuenta. Por favor intenta nuevamente.');
+      
+      // Mensajes de error más amigables
+      if (error.message.includes('already registered')) {
+        setError('Este email ya está registrado. ¿Olvidaste tu contraseña?');
+      } else if (error.message.includes('Password should be at least')) {
+        setError('La contraseña debe tener al menos 6 caracteres');
+      } else if (error.message.includes('Invalid email')) {
+        setError('Por favor ingresa un email válido');
+      } else {
+        setError(error.message || 'Error al crear la cuenta. Por favor intenta nuevamente.');
+      }
     } finally {
       setCargando(false);
     }

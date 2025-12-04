@@ -1,89 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
-interface LoginProps {
-  onLogin: (user: any) => void;
-  onBack?: () => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
-  // Verificar si ya está logueado
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const userData = {
-          id: session.user.id,
-          email: session.user.email!,
-          nombre: session.user.user_metadata?.nombre || session.user.email!.split('@')[0],
-          rol: session.user.user_metadata?.rol || 'cliente'
-        };
-        onLogin(userData);
-        navigate('/dashboard', { replace: true });
-      }
-    };
-
-    checkSession();
-  }, [navigate, onLogin]);
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setCargando(true);
     
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password
-      });
-
-      if (error) throw error;
-
-      if (data.user) {
-        const userData = {
-          id: data.user.id,
-          email: data.user.email!,
-          nombre: data.user.user_metadata?.nombre || data.user.email!.split('@')[0],
-          rol: data.user.user_metadata?.rol || 'cliente'
-        };
-        
-        console.log('✅ Login exitoso:', userData.nombre);
-        onLogin(userData);
-        navigate('/dashboard', { replace: true });
-      }
-    } catch (error: any) {
-      console.error('❌ Error login:', error);
-      setError(error.message || 'Credenciales incorrectas');
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  const handleRecovery = async () => {
-    if (!email.trim()) {
-      setError('Por favor ingresa tu email para recuperar la contraseña');
+    if (!email.trim() || !password) {
+      setError('Por favor completa todos los campos');
       return;
     }
 
+    setCargando(true);
+    
     try {
-      setCargando(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Login con Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      alert('Se ha enviado un enlace de recuperación a tu email');
-      navigate('/recuperacion');
+      console.log('✅ Login exitoso, esperando redirección...');
+      // El listener en App.tsx manejará la redirección automáticamente
+      
     } catch (error: any) {
-      setError(error.message || 'Error al enviar el email de recuperación');
+      console.error('Error en login:', error);
+      
+      // Mensajes de error amigables
+      if (error.message.includes('Invalid login credentials')) {
+        setError('Email o contraseña incorrectos');
+      } else if (error.message.includes('Email not confirmed')) {
+        setError('Por favor confirma tu email antes de iniciar sesión');
+      } else {
+        setError(error.message || 'Error al iniciar sesión');
+      }
     } finally {
       setCargando(false);
     }
@@ -92,191 +53,162 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const styles = {
     container: {
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #2563eb, #06b6d4)',
+      backgroundColor: '#f8fafc',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '1rem'
     },
-    form: {
-      background: 'white',
+    card: {
+      backgroundColor: 'white',
+      borderRadius: '0.75rem',
+      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
       padding: '2rem',
-      borderRadius: '0.5rem',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
       width: '100%',
-      maxWidth: '384px'
+      maxWidth: '400px'
     },
     header: {
       textAlign: 'center' as const,
       marginBottom: '2rem'
     },
+    logo: {
+      fontSize: '3rem',
+      marginBottom: '1rem'
+    },
     title: {
-      color: '#2563eb',
       fontSize: '1.875rem',
       fontWeight: 'bold',
-      margin: 0
+      color: '#1e293b',
+      margin: '0 0 0.5rem 0'
     },
     subtitle: {
-      color: '#1e293b',
-      marginTop: '0.5rem'
+      color: '#64748b',
+      margin: 0
     },
     error: {
-      color: '#dc2626',
-      fontSize: '0.875rem',
-      textAlign: 'center' as const,
-      marginBottom: '1rem',
-      padding: '0.5rem',
       backgroundColor: '#fef2f2',
-      borderRadius: '0.375rem'
+      color: '#dc2626',
+      padding: '0.75rem',
+      borderRadius: '0.375rem',
+      marginBottom: '1rem',
+      fontSize: '0.875rem',
+      textAlign: 'center' as const
     },
     formGroup: {
-      marginBottom: '1rem'
+      marginBottom: '1.25rem'
     },
     label: {
       display: 'block',
-      color: '#1e293b',
+      color: '#374151',
       fontSize: '0.875rem',
       fontWeight: '500',
       marginBottom: '0.5rem'
     },
     input: {
       width: '100%',
-      padding: '0.5rem 0.75rem',
+      padding: '0.625rem 0.75rem',
       border: '1px solid #d1d5db',
       borderRadius: '0.375rem',
       fontSize: '1rem',
       boxSizing: 'border-box' as const
     },
-    inputError: {
-      borderColor: '#dc2626'
-    },
-    inputFocus: {
-      outline: 'none',
-      borderColor: '#2563eb',
-      boxShadow: '0 0 0 2px rgba(37, 99, 235, 0.2)'
-    },
     button: {
       width: '100%',
-      backgroundColor: '#2563eb',
+      backgroundColor: '#3b82f6',
       color: 'white',
-      padding: '0.5rem 1rem',
+      padding: '0.75rem',
       border: 'none',
       borderRadius: '0.375rem',
       fontSize: '1rem',
+      fontWeight: '500',
       cursor: 'pointer',
       transition: 'background-color 0.2s',
-      opacity: 1
+      marginTop: '0.5rem'
     },
     buttonDisabled: {
       backgroundColor: '#9ca3af',
-      cursor: 'not-allowed',
-      opacity: 0.6
+      cursor: 'not-allowed'
     },
-    buttonHover: {
-      backgroundColor: '#1d4ed8'
-    },
-    recoveryLink: {
-      textAlign: 'center' as const,
-      marginTop: '1rem'
-    },
-    link: {
-      color: '#2563eb',
-      textDecoration: 'none',
-      fontSize: '0.875rem',
-      cursor: 'pointer'
-    },
-    linkHover: {
-      textDecoration: 'underline'
-    },
-    registerSection: {
-      textAlign: 'center' as const,
+    links: {
+      display: 'flex',
+      justifyContent: 'space-between',
       marginTop: '1.5rem',
-      paddingTop: '1rem',
+      paddingTop: '1.5rem',
       borderTop: '1px solid #e5e7eb'
     },
-    registerText: {
-      color: '#6b7280',
+    link: {
+      color: '#3b82f6',
+      textDecoration: 'none',
       fontSize: '0.875rem',
-      marginBottom: '0.5rem'
+      cursor: 'pointer',
+      fontWeight: '500'
     }
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.form}>
+      <div style={styles.card}>
         <div style={styles.header}>
-          <h1 style={styles.title}>DentalFlow Manager</h1>
-          <p style={styles.subtitle}>Sistema de Gestión Dental</p>
+          <div style={styles.logo}>🦷</div>
+          <h2 style={styles.title}>DentalFlow</h2>
+          <p style={styles.subtitle}>Inicia sesión en tu cuenta</p>
         </div>
-        
+
         {error && <div style={styles.error}>{error}</div>}
-        
-        <form onSubmit={handleLogin}>
+
+        <form onSubmit={handleSubmit}>
           <div style={styles.formGroup}>
             <label style={styles.label}>Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{...styles.input, ...(error ? styles.inputError : {})}}
-              placeholder="tu@email.com"
-              onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-              onBlur={(e) => e.target.style.boxShadow = ''}
+              style={styles.input}
+              placeholder="correo@ejemplo.com"
               required
+              disabled={cargando}
             />
           </div>
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>Contraseña</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{...styles.input, ...(error ? styles.inputError : {})}}
-              placeholder="Ingresa tu contraseña"
-              onFocus={(e) => Object.assign(e.target.style, styles.inputFocus)}
-              onBlur={(e) => e.target.style.boxShadow = ''}
+              style={styles.input}
+              placeholder="••••••••"
               required
+              disabled={cargando}
             />
           </div>
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             style={{
               ...styles.button,
               ...(cargando ? styles.buttonDisabled : {})
             }}
-            onMouseOver={(e) => !cargando && Object.assign(e.currentTarget.style, styles.buttonHover)}
-            onMouseOut={(e) => !cargando && (e.currentTarget.style.backgroundColor = '#2563eb')}
             disabled={cargando}
           >
-            {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {cargando ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </button>
         </form>
 
-        {/* Enlace de recuperación de cuenta */}
-        <div style={styles.recoveryLink}>
-          <a 
+        <div style={styles.links}>
+          <span
             style={styles.link}
-            onMouseOver={(e) => Object.assign(e.currentTarget.style, styles.linkHover)}
-            onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
-            onClick={handleRecovery}
+            onClick={() => navigate('/recuperacion')}
           >
             ¿Olvidaste tu contraseña?
-          </a>
-        </div>
-
-        {/* Sección de registro */}
-        <div style={styles.registerSection}>
-          <p style={styles.registerText}>¿No tienes una cuenta?</p>
-          <a 
+          </span>
+          
+          <span
             style={styles.link}
-            onMouseOver={(e) => Object.assign(e.currentTarget.style, styles.linkHover)}
-            onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
             onClick={() => navigate('/registro')}
           >
             Crear cuenta nueva
-          </a>
+          </span>
         </div>
       </div>
     </div>
