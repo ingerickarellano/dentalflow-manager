@@ -1,3 +1,4 @@
+// Reemplaza TODO el archivo Login.tsx con esta versión corregida:
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -10,45 +11,56 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  e.preventDefault();
+  setError('');
+  
+  if (!email.trim() || !password) {
+    setError('Por favor completa todos los campos');
+    return;
+  }
+
+  setCargando(true);
+  
+  try {
+    console.log('🔐 Intentando login con:', email);
     
-    if (!email.trim() || !password) {
-      setError('Por favor completa todos los campos');
-      return;
+    // 1. Limpiar sesión previa
+    await supabase.auth.signOut();
+    
+    // 2. Login
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password,
+    });
+
+    if (loginError) {
+      throw loginError;
     }
 
-    setCargando(true);
+    console.log('✅ Login exitoso:', data.user?.email);
     
-    try {
-      // Login con Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('✅ Login exitoso, esperando redirección...');
-      // El listener en App.tsx manejará la redirección automáticamente
-      
-    } catch (error: any) {
-      console.error('Error en login:', error);
-      
-      // Mensajes de error amigables
-      if (error.message.includes('Invalid login credentials')) {
-        setError('Email o contraseña incorrectos');
-      } else if (error.message.includes('Email not confirmed')) {
-        setError('Por favor confirma tu email antes de iniciar sesión');
-      } else {
-        setError(error.message || 'Error al iniciar sesión');
-      }
-    } finally {
-      setCargando(false);
+    // 3. Esperar y verificar
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('La sesión no se estableció');
     }
-  };
+    
+    console.log('🎉 Redirigiendo al dashboard...');
+    
+    // 4. REDIRECCIÓN MANUAL Y FORZADA
+    window.location.href = '/dashboard';
+    
+  } catch (error: any) {
+    console.error('❌ Error en login:', error);
+    setError(error.message || 'Error desconocido');
+    setPassword('');
+  } finally {
+    setCargando(false);
+  }
+};
 
   const styles = {
     container: {

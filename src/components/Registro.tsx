@@ -259,7 +259,10 @@ const Registro: React.FC<RegistroProps> = ({ onBack }) => {
             suscripcion_activa: plan.id === 'gratuita', // Gratis está activa
             fecha_expiracion: plan.id === 'gratuita' 
               ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 días
-              : null
+              : null,
+            creado_en: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           });
 
         if (profileError) {
