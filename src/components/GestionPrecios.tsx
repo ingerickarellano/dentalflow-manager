@@ -38,7 +38,6 @@ const categorias = {
   'otros': '📦 Otros Servicios'
 };
 
-// Mapeo de nombres completos a claves
 const mapeoCategorias: { [key: string]: string } = {
   'prótesis fija': 'fija',
   'protesis fija': 'fija',
@@ -260,7 +259,6 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     }
   };
 
-  // Función para descargar plantilla Excel
   const descargarPlantillaExcel = () => {
     const plantilla: FilaPlantillaExcel[] = [
       {
@@ -277,41 +275,6 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
         'Categoría': 'implantes',
         'Nombre del Servicio': 'Implante Dental Unitario',
         'Precio Base': 300000
-      },
-      {
-        'Categoría': 'ortodoncia',
-        'Nombre del Servicio': 'Brackets Metálicos',
-        'Precio Base': 800000
-      },
-      {
-        'Categoría': 'reparaciones', 
-        'Nombre del Servicio': 'Reparación de Prótesis',
-        'Precio Base': 50000
-      },
-      {
-        'Categoría': 'metales',
-        'Nombre del Servicio': 'Estructura de Cromo Cobalto',
-        'Precio Base': 120000
-      },
-      {
-        'Categoría': 'attachments',
-        'Nombre del Servicio': 'Attachment Locator',
-        'Precio Base': 80000
-      },
-      {
-        'Categoría': 'ceromeros_composites',
-        'Nombre del Servicio': 'Carilla de Composite',
-        'Precio Base': 90000
-      },
-      {
-        'Categoría': 'planos_estampados',
-        'Nombre del Servicio': 'Plano de Mordida',
-        'Precio Base': 35000
-      },
-      {
-        'Categoría': 'otros',
-        'Nombre del Servicio': 'Limpieza Dental Profesional',
-        'Precio Base': 40000
       }
     ];
 
@@ -319,7 +282,6 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Servicios');
     
-    // Ajustar anchos de columnas
     const colWidths = [
       { wch: 20 },
       { wch: 35 },
@@ -330,7 +292,6 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     XLSX.writeFile(wb, 'plantilla_servicios.xlsx');
   };
 
-  // Función para procesar archivo Excel
   const procesarArchivoExcel = async (file: File) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -353,7 +314,6 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     });
   };
 
-  // Función auxiliar para buscar valores en diferentes nombres de columnas
   const obtenerValorColumna = (fila: any, tipo: 'categoria' | 'nombre' | 'precio'): string | null => {
     const mapeoColumnas = {
       categoria: ['Categoría', 'categoria', 'CATEGORIA', 'Categoria', 'Tipo'],
@@ -390,7 +350,6 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
 
       const datosExcel: any[] = await procesarArchivoExcel(archivoExcel) as any[];
       
-      // Filtrar filas vacías
       const datosFiltrados = datosExcel.filter(fila => {
         const categoria = obtenerValorColumna(fila, 'categoria');
         const nombre = obtenerValorColumna(fila, 'nombre');
@@ -414,7 +373,6 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
           throw new Error(`Fila ${numeroFila}: Formato incorrecto`);
         }
 
-        // Normalizar categoría
         const categoriaNormalizada = categoria.toString()
           .toLowerCase()
           .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -462,12 +420,10 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     }
   };
 
-  // Filtrar servicios
   const serviciosFiltrados = filtroCategoria === 'todos' 
     ? servicios 
     : servicios.filter(s => s.categoria === filtroCategoria);
 
-  // Formatear precio en CLP
   const formatearPrecioCLP = (precio: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -477,174 +433,199 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     }).format(precio);
   };
 
-  // Estilos mejorados - diseño armónico y minimalista
+  // Estilos similares al dashboard - limpios y profesionales
   const styles = {
     container: {
-      padding: '24px',
-      backgroundColor: '#f8fafc',
-      minHeight: '100vh',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      maxWidth: '1200px',
-      margin: '0 auto'
+      padding: '20px',
+      backgroundColor: '#f8f9fa',
+      minHeight: '100vh'
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '32px',
+      marginBottom: '30px',
       flexWrap: 'wrap' as const,
-      gap: '16px'
+      gap: '15px'
     },
     title: {
-      color: '#1e293b',
-      fontSize: '28px',
+      fontSize: '24px',
       fontWeight: '600',
+      color: '#2c3e50',
       margin: '0'
     },
     backButton: {
-      backgroundColor: '#64748b',
+      padding: '8px 16px',
+      backgroundColor: '#6c757d',
       color: 'white',
-      padding: '10px 20px',
       border: 'none',
-      borderRadius: '8px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontWeight: '500',
       fontSize: '14px',
-      transition: 'all 0.2s ease'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     primaryButton: {
-      backgroundColor: '#475569',
+      padding: '8px 16px',
+      backgroundColor: '#3498db',
       color: 'white',
-      padding: '10px 20px',
       border: 'none',
-      borderRadius: '8px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontWeight: '500',
       fontSize: '14px',
-      transition: 'all 0.2s ease'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     secondaryButton: {
-      backgroundColor: '#334155',
+      padding: '8px 16px',
+      backgroundColor: '#95a5a6',
       color: 'white',
-      padding: '10px 20px',
       border: 'none',
-      borderRadius: '8px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontWeight: '500',
       fontSize: '14px',
-      transition: 'all 0.2s ease'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     statsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-      gap: '16px',
-      marginBottom: '24px'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+      gap: '15px',
+      marginBottom: '25px'
     },
     statCard: {
       backgroundColor: 'white',
       padding: '20px',
       borderRadius: '8px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-      textAlign: 'center' as const,
-      border: '1px solid #e2e8f0'
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+      border: '1px solid #e0e0e0'
     },
     statNumber: {
-      fontSize: '24px',
+      fontSize: '28px',
       fontWeight: '600',
-      margin: '8px 0',
-      color: '#1e293b'
+      color: '#2c3e50',
+      margin: '8px 0'
     },
     statLabel: {
-      color: '#64748b',
       fontSize: '14px',
+      color: '#7f8c8d',
       fontWeight: '500'
     },
     filters: {
+      backgroundColor: 'white',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+      marginBottom: '25px',
+      border: '1px solid #e0e0e0'
+    },
+    filterTitle: {
+      fontSize: '16px',
+      fontWeight: '600',
+      color: '#2c3e50',
+      marginBottom: '15px'
+    },
+    filterButtons: {
       display: 'flex',
-      gap: '8px',
-      marginBottom: '24px',
-      flexWrap: 'wrap' as const
+      flexWrap: 'wrap' as const,
+      gap: '10px'
     },
     filterButton: {
       padding: '8px 16px',
-      border: '1px solid #cbd5e1',
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #dee2e6',
       borderRadius: '6px',
+      color: '#495057',
       cursor: 'pointer',
-      backgroundColor: 'white',
-      color: '#475569',
-      transition: 'all 0.2s ease',
-      fontSize: '14px',
-      fontWeight: '500'
+      fontSize: '14px'
     },
     filterButtonActive: {
-      backgroundColor: '#475569',
+      backgroundColor: '#3498db',
       color: 'white',
-      borderColor: '#475569'
+      borderColor: '#3498db'
+    },
+    contentCard: {
+      backgroundColor: 'white',
+      padding: '25px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+      border: '1px solid #e0e0e0'
     },
     serviciosGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-      gap: '16px'
+      gap: '20px'
     },
     servicioCard: {
       backgroundColor: 'white',
-      padding: '20px',
+      border: '1px solid #e0e0e0',
       borderRadius: '8px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-      border: '1px solid #e2e8f0',
-      transition: 'all 0.2s ease'
+      padding: '20px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
     },
     cardHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: '12px'
+      marginBottom: '15px'
     },
     servicioNombre: {
-      color: '#1e293b',
       fontSize: '16px',
-      fontWeight: '500',
+      fontWeight: '600',
+      color: '#2c3e50',
       margin: '0',
-      lineHeight: '1.4'
+      flex: 1
     },
     categoriaBadge: {
-      padding: '4px 8px',
+      padding: '4px 12px',
+      backgroundColor: '#f8f9fa',
       borderRadius: '4px',
-      fontSize: '11px',
-      fontWeight: '500',
-      backgroundColor: '#f1f5f9',
-      color: '#475569'
+      fontSize: '12px',
+      color: '#6c757d',
+      fontWeight: '500'
     },
     precio: {
-      color: '#059669',
-      fontSize: '18px',
+      fontSize: '22px',
       fontWeight: '600',
-      margin: '8px 0',
+      color: '#27ae60',
+      margin: '12px 0',
       fontFamily: "'Courier New', monospace"
     },
     acciones: {
       display: 'flex',
-      gap: '8px',
-      marginTop: '16px'
+      gap: '10px',
+      marginTop: '15px'
     },
- actionButton: {
-  padding: '6px 12px',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontSize: '12px',
-  fontWeight: '500',
-  transition: 'all 0.2s ease',
-  backgroundColor: '#f8fafc',
-  color: '#475569',
-  border: '1px solid #e2e8f0'
-},
+    actionButton: {
+      flex: 1,
+      padding: '8px',
+      border: '1px solid #dee2e6',
+      borderRadius: '6px',
+      backgroundColor: 'white',
+      color: '#495057',
+      cursor: 'pointer',
+      fontSize: '13px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px'
+    },
+    editButton: {
+      color: '#3498db'
+    },
+    deleteButton: {
+      color: '#e74c3c'
+    },
     modalOverlay: {
       position: 'fixed' as const,
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -653,48 +634,51 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     },
     modalContent: {
       backgroundColor: 'white',
-      padding: '24px',
-      borderRadius: '12px',
-      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+      borderRadius: '8px',
       width: '100%',
       maxWidth: '500px',
       maxHeight: '90vh',
-      overflow: 'auto'
+      overflow: 'auto',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
     },
     modalHeader: {
+      padding: '20px 20px 10px 20px',
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '20px'
+      alignItems: 'center'
     },
     modalTitle: {
-      color: '#1e293b',
-      fontSize: '20px',
+      fontSize: '18px',
       fontWeight: '600',
+      color: '#2c3e50',
       margin: 0
     },
     closeButton: {
       background: 'none',
       border: 'none',
-      fontSize: '20px',
+      fontSize: '24px',
       cursor: 'pointer',
-      color: '#64748b',
-      padding: '4px'
+      color: '#7f8c8d',
+      padding: '0',
+      lineHeight: 1
+    },
+    modalBody: {
+      padding: '20px'
     },
     formGroup: {
-      marginBottom: '16px'
+      marginBottom: '20px'
     },
     label: {
       display: 'block',
-      color: '#374151',
       fontSize: '14px',
       fontWeight: '500',
-      marginBottom: '6px'
+      color: '#495057',
+      marginBottom: '8px'
     },
     input: {
       width: '100%',
       padding: '10px 12px',
-      border: '1px solid #d1d5db',
+      border: '1px solid #ced4da',
       borderRadius: '6px',
       fontSize: '14px',
       boxSizing: 'border-box' as const
@@ -702,88 +686,84 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     select: {
       width: '100%',
       padding: '10px 12px',
-      border: '1px solid #d1d5db',
+      border: '1px solid #ced4da',
       borderRadius: '6px',
       fontSize: '14px',
       backgroundColor: 'white'
     },
-    buttonGroup: {
+    modalFooter: {
+      padding: '20px',
+      borderTop: '1px solid #e0e0e0',
       display: 'flex',
-      gap: '12px',
       justifyContent: 'flex-end',
-      marginTop: '24px'
+      gap: '10px'
     },
-    successButton: {
-      backgroundColor: '#475569',
-      color: 'white',
-      padding: '10px 20px',
-      border: 'none',
+    cancelButton: {
+      padding: '8px 16px',
+      backgroundColor: '#f8f9fa',
+      color: '#495057',
+      border: '1px solid #dee2e6',
       borderRadius: '6px',
       cursor: 'pointer',
-      fontWeight: '500',
       fontSize: '14px'
     },
-    dangerButton: {
-      backgroundColor: '#64748b',
+    saveButton: {
+      padding: '8px 16px',
+      backgroundColor: '#3498db',
       color: 'white',
-      padding: '10px 20px',
       border: 'none',
       borderRadius: '6px',
       cursor: 'pointer',
-      fontWeight: '500',
       fontSize: '14px'
     },
     loadingText: {
       textAlign: 'center' as const,
-      color: '#64748b',
-      padding: '40px',
+      padding: '40px 20px',
+      color: '#7f8c8d',
       fontSize: '16px'
     },
     emptyState: {
       textAlign: 'center' as const,
-      color: '#64748b',
-      padding: '40px 20px',
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      border: '1px dashed #cbd5e1'
+      padding: '60px 20px',
+      color: '#7f8c8d'
+    },
+    emptyStateTitle: {
+      fontSize: '18px',
+      fontWeight: '600',
+      marginBottom: '10px'
+    },
+    emptyStateText: {
+      marginBottom: '20px',
+      fontSize: '14px'
     },
     errorText: {
-      color: '#dc2626',
-      backgroundColor: '#fef2f2',
-      border: '1px solid #fecaca',
+      backgroundColor: '#fff5f5',
+      border: '1px solid #fed7d7',
+      color: '#e53e3e',
       padding: '12px 16px',
       borderRadius: '6px',
       marginBottom: '16px',
       fontSize: '14px'
     },
     excelSection: {
-      backgroundColor: 'white',
       padding: '20px',
-      borderRadius: '8px',
-      border: '1px solid #e2e8f0'
+      border: '1px solid #e0e0e0',
+      borderRadius: '6px',
+      backgroundColor: '#f8f9fa'
     },
     excelTitle: {
-      color: '#1e293b',
-      fontSize: '18px',
+      fontSize: '16px',
       fontWeight: '600',
-      margin: '0 0 16px 0'
+      color: '#2c3e50',
+      marginBottom: '12px'
     },
     excelDescription: {
-      color: '#64748b',
       fontSize: '14px',
-      margin: '0 0 20px 0',
+      color: '#6c757d',
+      marginBottom: '20px',
       lineHeight: '1.5'
     },
-    fileInput: {
-      width: '100%',
-      padding: '12px',
-      border: '2px dashed #cbd5e1',
-      borderRadius: '8px',
-      marginBottom: '20px',
-      backgroundColor: '#f8fafc',
-      cursor: 'pointer'
-    },
-    categoryList: {
+    categoryGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(2, 1fr)',
       gap: '8px',
@@ -791,53 +771,50 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
     },
     categoryItem: {
       padding: '8px',
-      backgroundColor: '#f8fafc',
+      backgroundColor: 'white',
       borderRadius: '4px',
       fontSize: '12px',
       textAlign: 'center' as const,
-      color: '#475569'
+      color: '#495057',
+      border: '1px solid #dee2e6'
+    },
+    fileInput: {
+      width: '100%',
+      padding: '12px',
+      border: '1px dashed #ced4da',
+      borderRadius: '6px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      marginBottom: '20px',
+      textAlign: 'center' as const,
+      color: '#6c757d'
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
-            style={styles.backButton}
-            onClick={handleBack}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button style={styles.backButton} onClick={handleBack}>
             ← Volver
           </button>
           <h1 style={styles.title}>Gestión de Precios</h1>
         </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button 
-            style={styles.secondaryButton}
-            onClick={descargarPlantillaExcel}
-          >
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button style={styles.secondaryButton} onClick={descargarPlantillaExcel}>
             📥 Plantilla Excel
           </button>
-          <button 
-            style={styles.secondaryButton}
-            onClick={() => setMostrarModalExcel(true)}
-          >
+          <button style={styles.secondaryButton} onClick={() => setMostrarModalExcel(true)}>
             📊 Cargar Excel
           </button>
-          <button 
-            style={styles.primaryButton}
-            onClick={() => abrirModal()}
-          >
+          <button style={styles.primaryButton} onClick={() => abrirModal()}>
             ➕ Nuevo Servicio
           </button>
         </div>
       </div>
 
-      {/* Mostrar errores */}
       {error && <div style={styles.errorText}>❌ {error}</div>}
 
-      {/* Estadísticas */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
           <div style={styles.statLabel}>Total Servicios</div>
@@ -857,89 +834,85 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Filtros */}
       <div style={styles.filters}>
-        <button
-          style={{
-            ...styles.filterButton,
-            ...(filtroCategoria === 'todos' ? styles.filterButtonActive : {})
-          }}
-          onClick={() => setFiltroCategoria('todos')}
-        >
-          Todos ({servicios.length})
-        </button>
-        {Object.entries(categorias).map(([key, nombre]) => (
+        <div style={styles.filterTitle}>Filtrar por categoría:</div>
+        <div style={styles.filterButtons}>
           <button
-            key={key}
             style={{
               ...styles.filterButton,
-              ...(filtroCategoria === key ? styles.filterButtonActive : {})
+              ...(filtroCategoria === 'todos' ? styles.filterButtonActive : {})
             }}
-            onClick={() => setFiltroCategoria(key)}
+            onClick={() => setFiltroCategoria('todos')}
           >
-            {nombre} ({servicios.filter(s => s.categoria === key).length})
+            Todos ({servicios.length})
           </button>
-        ))}
-      </div>
-
-      {/* Lista de Servicios */}
-      {cargando ? (
-        <div style={styles.loadingText}>Cargando servicios...</div>
-      ) : serviciosFiltrados.length === 0 ? (
-        <div style={styles.emptyState}>
-          <h3 style={{color: '#475569', marginBottom: '8px'}}>No hay servicios</h3>
-          <p style={{marginBottom: '20px'}}>
-            {filtroCategoria !== 'todos' 
-              ? `No hay servicios en la categoría "${categorias[filtroCategoria as keyof typeof categorias]}"`
-              : 'Comienza agregando tu primer servicio'
-            }
-          </p>
-          <button 
-            style={styles.primaryButton}
-            onClick={() => abrirModal()}
-          >
-            ➕ Agregar Primer Servicio
-          </button>
-        </div>
-      ) : (
-        <div style={styles.serviciosGrid}>
-          {serviciosFiltrados.map(servicio => (
-            <div
-              key={servicio.id}
-              style={styles.servicioCard}
+          {Object.entries(categorias).map(([key, nombre]) => (
+            <button
+              key={key}
+              style={{
+                ...styles.filterButton,
+                ...(filtroCategoria === key ? styles.filterButtonActive : {})
+              }}
+              onClick={() => setFiltroCategoria(key)}
             >
-              <div style={styles.cardHeader}>
-                <h3 style={styles.servicioNombre}>{servicio.nombre}</h3>
-                <span style={styles.categoriaBadge}>
-                  {categorias[servicio.categoria as keyof typeof categorias]}
-                </span>
-              </div>
-
-              <div style={styles.precio}>
-                {formatearPrecioCLP(servicio.precio_base)}
-              </div>
-
-              <div style={styles.acciones}>
-                <button
-                  style={styles.actionButton}
-                  onClick={() => abrirModal(servicio)}
-                >
-                  ✏️ Editar
-                </button>
-                
-                <button
-                  style={styles.actionButton}
-                  onClick={() => eliminarServicio(servicio)}
-                >
-                  🗑️ Eliminar
-                </button>
-              </div>
-            </div>
+              {nombre} ({servicios.filter(s => s.categoria === key).length})
+            </button>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* Modal para agregar/editar servicio */}
+      <div style={styles.contentCard}>
+        {cargando ? (
+          <div style={styles.loadingText}>Cargando servicios...</div>
+        ) : serviciosFiltrados.length === 0 ? (
+          <div style={styles.emptyState}>
+            <h3 style={styles.emptyStateTitle}>No hay servicios</h3>
+            <p style={styles.emptyStateText}>
+              {filtroCategoria !== 'todos' 
+                ? `No hay servicios en la categoría "${categorias[filtroCategoria as keyof typeof categorias]}"`
+                : 'Comienza agregando tu primer servicio'
+              }
+            </p>
+            <button style={styles.primaryButton} onClick={() => abrirModal()}>
+              ➕ Agregar Primer Servicio
+            </button>
+          </div>
+        ) : (
+          <div style={styles.serviciosGrid}>
+            {serviciosFiltrados.map(servicio => (
+              <div key={servicio.id} style={styles.servicioCard}>
+                <div style={styles.cardHeader}>
+                  <h3 style={styles.servicioNombre}>{servicio.nombre}</h3>
+                  <span style={styles.categoriaBadge}>
+                    {categorias[servicio.categoria as keyof typeof categorias]}
+                  </span>
+                </div>
+
+                <div style={styles.precio}>
+                  {formatearPrecioCLP(servicio.precio_base)}
+                </div>
+
+                <div style={styles.acciones}>
+                  <button
+                    style={{...styles.actionButton, ...styles.editButton}}
+                    onClick={() => abrirModal(servicio)}
+                  >
+                    ✏️ Editar
+                  </button>
+                  
+                  <button
+                    style={{...styles.actionButton, ...styles.deleteButton}}
+                    onClick={() => eliminarServicio(servicio)}
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {mostrarModal && (
         <div style={styles.modalOverlay} onClick={cerrarModal}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -947,135 +920,114 @@ const GestionPrecios: React.FC<GestionPreciosProps> = ({ onBack }) => {
               <h2 style={styles.modalTitle}>
                 {servicioEditando ? 'Editar Servicio' : 'Nuevo Servicio'}
               </h2>
-              <button 
-                style={styles.closeButton}
-                onClick={cerrarModal}
-              >
-                ✕
+              <button style={styles.closeButton} onClick={cerrarModal}>
+                ×
               </button>
             </div>
 
-            {error && <div style={styles.errorText}>{error}</div>}
+            <div style={styles.modalBody}>
+              {error && <div style={styles.errorText}>{error}</div>}
 
-            <form onSubmit={guardarServicio}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Categoría *</label>
-                <select 
-                  style={styles.select}
-                  value={formData.categoria}
-                  onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                  required
-                >
-                  {Object.entries(categorias).map(([key, nombre]) => (
-                    <option key={key} value={key}>{nombre}</option>
-                  ))}
-                </select>
-              </div>
+              <form onSubmit={guardarServicio}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Categoría *</label>
+                  <select 
+                    style={styles.select}
+                    value={formData.categoria}
+                    onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+                    required
+                  >
+                    {Object.entries(categorias).map(([key, nombre]) => (
+                      <option key={key} value={key}>{nombre}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Nombre del Servicio *</label>
-                <input
-                  type="text"
-                  style={styles.input}
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                  placeholder="Ej: Corona de Zirconio Personalizada"
-                  required
-                />
-              </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Nombre del Servicio *</label>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                    placeholder="Ej: Corona de Zirconio Personalizada"
+                    required
+                  />
+                </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Precio Base (CLP) *</label>
-                <input
-                  type="number"
-                  style={styles.input}
-                  value={formData.precioBase}
-                  onChange={(e) => setFormData({...formData, precioBase: e.target.value})}
-                  min="0"
-                  step="100"
-                  placeholder="0"
-                  required
-                />
-                <small style={{color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block'}}>
-                  Precio en pesos chilenos
-                </small>
-              </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Precio Base (CLP) *</label>
+                  <input
+                    type="number"
+                    style={styles.input}
+                    value={formData.precioBase}
+                    onChange={(e) => setFormData({...formData, precioBase: e.target.value})}
+                    min="0"
+                    step="100"
+                    placeholder="0"
+                    required
+                  />
+                </div>
 
-              <div style={styles.buttonGroup}>
-                <button 
-                  type="button" 
-                  style={styles.dangerButton}
-                  onClick={cerrarModal}
-                  disabled={cargando}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  style={styles.successButton}
-                  disabled={cargando}
-                >
-                  {cargando ? 'Guardando...' : servicioEditando ? 'Actualizar' : 'Crear Servicio'}
-                </button>
-              </div>
-            </form>
+                <div style={styles.modalFooter}>
+                  <button type="button" style={styles.cancelButton} onClick={cerrarModal}>
+                    Cancelar
+                  </button>
+                  <button type="submit" style={styles.saveButton}>
+                    {servicioEditando ? 'Actualizar' : 'Crear'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Modal para cargar desde Excel */}
       {mostrarModalExcel && (
         <div style={styles.modalOverlay} onClick={() => setMostrarModalExcel(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Cargar desde Excel</h2>
-              <button 
-                style={styles.closeButton}
-                onClick={() => setMostrarModalExcel(false)}
-              >
-                ✕
+              <button style={styles.closeButton} onClick={() => setMostrarModalExcel(false)}>
+                ×
               </button>
             </div>
 
-            {error && <div style={styles.errorText}>{error}</div>}
+            <div style={styles.modalBody}>
+              {error && <div style={styles.errorText}>{error}</div>}
 
-            <div style={styles.excelSection}>
-              <h3 style={styles.excelTitle}>Instrucciones</h3>
-              <p style={styles.excelDescription}>
-                Descarga la plantilla, completa los datos y súbelos aquí. 
-                Asegúrate de usar las categorías correctas y precios en números sin formato.
-              </p>
+              <div style={styles.excelSection}>
+                <h3 style={styles.excelTitle}>Instrucciones</h3>
+                <p style={styles.excelDescription}>
+                  Descarga la plantilla, completa los datos y súbelos aquí.
+                </p>
 
-              <div style={styles.categoryList}>
-                {Object.entries(categorias).map(([key, nombre]) => (
-                  <div key={key} style={styles.categoryItem}>
-                    {nombre}
-                  </div>
-                ))}
-              </div>
-              
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                style={styles.fileInput}
-                onChange={(e) => setArchivoExcel(e.target.files?.[0] || null)}
-              />
-              
-              <div style={styles.buttonGroup}>
-                <button 
-                  style={styles.dangerButton}
-                  onClick={() => setMostrarModalExcel(false)}
-                  disabled={cargando}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  style={styles.successButton}
-                  onClick={cargarDesdeExcel}
-                  disabled={cargando || !archivoExcel}
-                >
-                  {cargando ? 'Cargando...' : 'Cargar Servicios'}
-                </button>
+                <div style={styles.categoryGrid}>
+                  {Object.entries(categorias).map(([key, nombre]) => (
+                    <div key={key} style={styles.categoryItem}>
+                      {nombre}
+                    </div>
+                  ))}
+                </div>
+                
+                <div style={styles.fileInput}>
+                  {archivoExcel ? `📁 ${archivoExcel.name}` : '📎 Seleccionar archivo Excel'}
+                </div>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  style={{ display: 'none' }}
+                  onChange={(e) => setArchivoExcel(e.target.files?.[0] || null)}
+                />
+                
+                <div style={styles.modalFooter}>
+                  <button style={styles.cancelButton} onClick={() => setMostrarModalExcel(false)}>
+                    Cancelar
+                  </button>
+                  <button style={styles.saveButton} onClick={cargarDesdeExcel}>
+                    Cargar
+                  </button>
+                </div>
               </div>
             </div>
           </div>

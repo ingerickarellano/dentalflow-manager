@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
+import { Session } from '@supabase/supabase-js';
 
-// Componentes de páginas
+// Importar componentes
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Registro from './components/Registro';
 import RecuperacionCuenta from './components/RecuperacionCuenta';
 import Dashboard from './components/Dashboard';
-
-// Componentes de gestión
 import CrearTrabajo from './components/CrearTrabajo';
 import GestionClinicas from './components/GestionClinicas';
 import GestionDentistas from './components/GestionDentistas';
@@ -21,230 +20,101 @@ import OpcionesCuenta from './components/OpcionesCuenta';
 import Reportes from './components/Reportes';
 import AdminPanel from './components/AdminPanel';
 
-// Interfaces - CORREGIDAS
 interface User {
   id: string;
   email: string;
   nombre: string;
   rol: string;
   suscripcion_activa?: boolean;
-  fecha_expiracion?: string | null;  // Permitir null
+  fecha_expiracion?: string | null;
   plan?: string;
   laboratorio?: string;
   telefono?: string;
 }
 
-// Componente principal de la aplicación
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Verificar sesión al cargar
+  // 1. INICIALIZACIÓN SIMPLE Y SEGURA
   useEffect(() => {
-    checkAuthSession();
-  }, []);
-
-  const checkAuthSession = async (): Promise<void> => {
-    try {
-      console.log('🔍 Verificando sesión...');
-      setLoading(true);
-      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('❌ Error verificando sesión:', error);
-        setLoading(false);
-        return;
-      }
-
-      console.log('📋 Sesión obtenida:', session ? 'Sí' : 'No');
-
-      if (session?.user) {
-        console.log('👤 Usuario encontrado, cargando datos...');
-        await loadUserData(session.user);
-      } else {
-        console.log('🚫 No hay usuario en sesión');
-        localStorage.removeItem('currentUser');
-        setCurrentUser(null);
-        setLoading(false);
-      }
-
-    } catch (error: any) {
-      console.error('💥 Error en checkAuthSession:', error);
-      setLoading(false);
-    }
-  };
-
-  const loadUserData = async (user: any): Promise<void> => {
-    try {
-      console.log('📥 Cargando datos del usuario... ID:', user.id);
-      
-      // SOLUCIÓN TEMPORAL: Si no existe perfiles_usuarios, usar datos básicos
-      let userData: User = {
-        id: user.id,
-        email: user.email!,
-        nombre: user.user_metadata?.nombre || user.email!.split('@')[0],
-        rol: user.user_metadata?.rol || 'cliente',
-        suscripcion_activa: false,
-        fecha_expiracion: null,  // CORREGIDO: null es válido ahora
-        plan: 'gratuita'
-      };
-
-      // Intentar cargar el perfil del usuario CON TIMEOUT
-      try {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout loading profile')), 5000)
-        );
-
-        const profilePromise = supabase
-          .from('perfiles_usuarios')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        const { data: userProfile, error } = await Promise.race([
-          profilePromise,
-          timeoutPromise
-        ]) as any;
-
-        if (!error && userProfile) {
-          console.log('✅ Perfil encontrado:', userProfile);
-          userData = {
-            ...userData,
-            nombre: userProfile.nombre || userData.nombre,
-            rol: userProfile.rol || userData.rol,
-            suscripcion_activa: userProfile.suscripcion_activa || false,
-            fecha_expiracion: userProfile.fecha_expiracion,  // Puede ser null
-            plan: userProfile.plan || 'gratuita',
-            laboratorio: userProfile.laboratorio,
-            telefono: userProfile.telefono
-          };
-        } else {
-          console.log('⚠️ No se encontró perfil o error:', error?.message);
-        }
-      } catch (profileError: any) {
-        console.log('⚠️ Error/Timeout cargando perfil, usando datos básicos:', profileError.message);
-      }
-
-      console.log('👤 Datos de usuario finales:', userData);
-      setCurrentUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      
-      // Redirigir automáticamente al dashboard
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 100);
-
-    } catch (error: any) {
-      console.error('❌ Error crítico cargando datos de usuario:', error);
-      // Usuario básico como fallback
-      const basicUser: User = {
-        id: user.id,
-        email: user.email!,
-        nombre: user.user_metadata?.nombre || user.email!.split('@')[0],
-        rol: 'cliente',
-        suscripcion_activa: false,
-        fecha_expiracion: null,  // CORREGIDO
-        plan: 'gratuita'
-      };
-      setCurrentUser(basicUser);
-      localStorage.setItem('currentUser', JSON.stringify(basicUser));
-      navigate('/dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Escuchar cambios de autenticación
-  useEffect(() => {
-    console.log('🔔 Configurando listener de autenticación...');
+    console.log('🚀 App.tsx montado (solo una vez)');
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 Cambio en autenticación:', event);
+    let isActive = true;
+
+    // Función para verificar sesión
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        switch (event) {
-          case 'SIGNED_IN':
-            console.log('🔓 Usuario firmó sesión');
-            if (session?.user) {
-              setLoading(true);
-              await loadUserData(session.user);
-            }
-            break;
+        if (!isActive) return;
+        
+        if (error) {
+          console.error('❌ Error obteniendo sesión:', error);
+          setLoading(false);
+          return;
+        }
+        
+        setSession(session);
+        setLoading(false);
+        
+        // Si hay sesión y estamos en login/registro, redirigir
+        if (session?.user && (window.location.pathname === '/login' || window.location.pathname === '/registro')) {
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('💥 Error en checkSession:', error);
+        if (isActive) setLoading(false);
+      }
+    };
 
-          case 'SIGNED_OUT':
-            console.log('🔒 Usuario cerró sesión');
-            setCurrentUser(null);
-            localStorage.removeItem('currentUser');
-            setLoading(false);
-            navigate('/');
-            break;
+    checkSession();
 
-          case 'USER_UPDATED':
-            console.log('📝 Usuario actualizado');
-            if (session?.user) {
-              await loadUserData(session.user);
-            }
-            break;
-
-          default:
-            console.log('⚡ Otro evento de auth:', event);
+    // 2. LISTENER MINIMALISTA - sin lógica compleja
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        if (!isActive) return;
+        
+        console.log('🔄 Evento auth:', event, 'en ruta:', window.location.pathname);
+        
+        // Solo actualizar la sesión - sin lógica de redirección
+        setSession(newSession);
+        
+        // SOLO DOS CASOS ESPECÍFICOS:
+        if (event === 'SIGNED_IN' && newSession?.user) {
+          // Si acabamos de hacer login desde la página de login
+          if (window.location.pathname === '/login') {
+            console.log('🎯 Redirigiendo desde login a dashboard');
+            navigate('/dashboard');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          // Si cerramos sesión, redirigir a home
+          console.log('🔒 Redirigiendo a home después de logout');
+          navigate('/');
         }
       }
     );
 
+    // Cleanup limpio
     return () => {
-      console.log('🧹 Limpiando listener de autenticación');
+      console.log('🧹 App.tsx cleanup');
+      isActive = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
 
-  const handleLogout = async (): Promise<void> => {
-    try {
-      console.log('🚪 Cerrando sesión...');
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('❌ Error al cerrar sesión:', error);
-    }
-  };
+  // 3. DERIVAR currentUser DESDE session (sin estado separado)
+  const currentUser: User | null = session?.user ? {
+    id: session.user.id,
+    email: session.user.email!,
+    nombre: session.user.user_metadata?.nombre || session.user.email!.split('@')[0],
+    rol: session.user.user_metadata?.rol || 'cliente',
+    suscripcion_activa: false,
+    plan: 'gratuita'
+  } : null;
 
-  // Componentes de ruta protegidos
-  const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    if (!currentUser) {
-      return <Navigate to="/login" replace />;
-    }
-    return <>{children}</>;
-  };
-
-  const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    if (!currentUser || currentUser.rol !== 'admin') {
-      return <Navigate to="/dashboard" replace />;
-    }
-    return <>{children}</>;
-  };
-
-  const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    if (currentUser && window.location.pathname === '/login') {
-      return <Navigate to="/dashboard" replace />;
-    }
-    return <>{children}</>;
-  };
-
-  // Timeout de seguridad reducido
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn('⏰ Timeout de carga - Forzando finalización después de 10s');
-        setLoading(false);
-      }
-    }, 10000); // 10 segundos máximo
-
-    return () => clearTimeout(timeout);
-  }, [loading]);
-
-  // Pantalla de carga
+  // 4. LOADER SIMPLE
   if (loading) {
     return (
       <div style={{ 
@@ -252,118 +122,162 @@ const App: React.FC = () => {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        backgroundColor: '#f8fafc',
-        fontFamily: "'Inter', sans-serif"
+        backgroundColor: '#f8fafc'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '3rem', 
-            marginBottom: '1rem',
-            animation: 'pulse 2s infinite'
-          }}>
-            🦷
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🦷</div>
+          <div style={{ color: '#64748b', fontSize: '1.125rem' }}>DentalFlow</div>
+          <div style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            Inicializando...
           </div>
-          <div style={{ 
-            color: '#64748b', 
-            fontSize: '1.125rem',
-            fontWeight: '500',
-            marginBottom: '1rem'
-          }}>
-            Cargando DentalFlow...
-          </div>
-          <div style={{ 
-            color: '#94a3b8', 
-            fontSize: '0.875rem' 
-          }}>
-            <button 
-              onClick={() => {
-                setLoading(false);
-                navigate('/dashboard');
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#3b82f6',
-                cursor: 'pointer',
-                textDecoration: 'underline'
-              }}
-            >
-              Saltar carga e ir al dashboard
-            </button>
-          </div>
-          <style>
-            {`
-              @keyframes pulse {
-                0% { opacity: 1; }
-                50% { opacity: 0.5; }
-                100% { opacity: 1; }
-              }
-            `}
-          </style>
         </div>
       </div>
     );
   }
 
-  console.log('🎉 Aplicación cargada - Usuario:', currentUser ? currentUser.email : 'No autenticado');
+  console.log('🎉 App lista. Usuario:', currentUser?.email || 'No autenticado', 'Ruta:', window.location.pathname);
+
+  // 5. FUNCIÓN DE LOGOUT DIRECTO
+  const handleLogout = async () => {
+    if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+      console.log('🚪 Logout solicitado');
+      await supabase.auth.signOut();
+    }
+  };
 
   return (
     <div className="App">
       <Routes>
-        {/* Rutas públicas */}
+        {/* RUTA PRINCIPAL */}
         <Route path="/" element={<LandingPage />} />
         
+        {/* AUTENTICACIÓN */}
         <Route 
           path="/login" 
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          } 
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} 
         />
         
         <Route 
           path="/registro" 
-          element={
-            <PublicRoute>
-              <Registro onBack={() => navigate('/')} />
-            </PublicRoute>
-          } 
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <Registro onBack={() => navigate('/')} />} 
         />
         
         <Route 
           path="/recuperacion" 
-          element={
-            <PublicRoute>
-              <RecuperacionCuenta onBack={() => navigate('/login')} />
-            </PublicRoute>
-          } 
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <RecuperacionCuenta onBack={() => navigate('/login')} />} 
         />
-
-        {/* Rutas protegidas */}
+        
+        {/* DASHBOARD PRINCIPAL */}
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute>
-              {currentUser && <Dashboard user={currentUser} onLogout={handleLogout} />}
-            </ProtectedRoute>
+            currentUser ? 
+              <Dashboard user={currentUser} onLogout={handleLogout} /> : 
+              <Navigate to="/login" replace />
           } 
         />
-
-        {/* Rutas de gestión */}
-        <Route path="/crear-trabajo" element={<ProtectedRoute><CrearTrabajo /></ProtectedRoute>} />
-        <Route path="/clinicas" element={<ProtectedRoute><GestionClinicas /></ProtectedRoute>} />
-        <Route path="/dentistas" element={<ProtectedRoute><GestionDentistas /></ProtectedRoute>} />
-        <Route path="/laboratoristas" element={<ProtectedRoute><GestionLaboratoristas /></ProtectedRoute>} />
-        <Route path="/servicios" element={<ProtectedRoute><GestionServicios /></ProtectedRoute>} />
-        <Route path="/trabajos" element={<ProtectedRoute><GestionTrabajos /></ProtectedRoute>} />
-        <Route path="/precios" element={<ProtectedRoute><GestionPrecios /></ProtectedRoute>} />
-        <Route path="/configuracion" element={<ProtectedRoute><OpcionesCuenta onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        <Route path="/reportes" element={<ProtectedRoute><Reportes onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        <Route path="/admin" element={<AdminRoute><AdminPanel onBack={() => navigate('/dashboard')} /></AdminRoute>} />
-        <Route path="/opciones-cuenta" element={<ProtectedRoute><OpcionesCuenta onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
-
-        {/* Ruta por defecto */}
+        
+        {/* MÓDULOS DEL SISTEMA */}
+        <Route 
+          path="/crear-trabajo" 
+          element={
+            currentUser ? 
+              <CrearTrabajo onBack={() => navigate('/dashboard')} /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/clinicas" 
+          element={
+            currentUser ? 
+              <GestionClinicas /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/dentistas" 
+          element={
+            currentUser ? 
+              <GestionDentistas /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/laboratoristas" 
+          element={
+            currentUser ? 
+              <GestionLaboratoristas /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/servicios" 
+          element={
+            currentUser ? 
+              <GestionServicios /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/trabajos" 
+          element={
+            currentUser ? 
+              <GestionTrabajos /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/precios" 
+          element={
+            currentUser ? 
+              <GestionPrecios /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/configuracion" 
+          element={
+            currentUser ? 
+              <OpcionesCuenta onBack={() => navigate('/dashboard')} /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/reportes" 
+          element={
+            currentUser ? 
+              <Reportes onBack={() => navigate('/dashboard')} /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        <Route 
+          path="/admin" 
+          element={
+            currentUser && currentUser.rol === 'admin' ? 
+              <AdminPanel onBack={() => navigate('/dashboard')} /> : 
+              <Navigate to="/dashboard" replace />
+          } 
+        />
+        
+        <Route 
+          path="/opciones-cuenta" 
+          element={
+            currentUser ? 
+              <OpcionesCuenta onBack={() => navigate('/dashboard')} /> : 
+              <Navigate to="/login" replace />
+          } 
+        />
+        
+        {/* RUTA POR DEFECTO */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

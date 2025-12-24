@@ -325,249 +325,324 @@ const Reportes: React.FC<ReportesProps> = ({ onBack }) => {
     return meses[parseInt(mes) - 1] || '';
   };
 
-  const exportarPDF = () => {
-    const clinicaSeleccionada = filtros.clinicaId !== 'todos' 
-      ? clinicas.find(c => c.id === filtros.clinicaId)
-      : null;
+ const exportarPDF = () => {
+  const clinicaSeleccionada = filtros.clinicaId !== 'todos'
+    ? clinicas.find(c => c.id === filtros.clinicaId)
+    : null;
 
-    const ventana = window.open('', '_blank');
-    if (ventana) {
-      ventana.document.write(`
-        <html>
-          <head>
-            <title>Reporte DentalFlow - ${new Date().toLocaleDateString()}</title>
-            <style>
-              @page {
+  const ventana = window.open('', '_blank');
+  if (ventana) {
+    ventana.document.write(`
+      <html>
+        <head>
+          <title>Reporte DentalFlow - ${new Date().toLocaleDateString()}</title>
+          <style>
+            @page {
+              margin: 1cm;
+              size: A4 portrait;
+            }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 0;
+              padding: 0;
+              color: #333;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            .container {
+              max-width: 100%;
+              margin: 0 auto;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              margin-bottom: 20px;
+              padding-bottom: 15px;
+              border-bottom: 2px solid #2563eb;
+            }
+            .logo-section {
+              flex: 1;
+              text-align: left;
+            }
+            .logo {
+              max-width: 120px;
+              max-height: 80px;
+              margin-bottom: 10px;
+            }
+            .info-section {
+              flex: 2;
+              text-align: right;
+            }
+            .header h1 {
+              color: #2563eb;
+              margin: 0 0 10px 0;
+              font-size: 20px;
+              font-weight: bold;
+            }
+            .header h2 {
+              margin: 0 0 12px 0;
+              font-size: 16px;
+              color: #1e293b;
+              font-weight: 600;
+            }
+            .lab-info {
+              font-size: 11px;
+              color: #64748b;
+              margin: 3px 0;
+              line-height: 1.3;
+            }
+            .report-info {
+              background: #f8fafc;
+              padding: 12px;
+              border-radius: 6px;
+              margin: 12px 0;
+              border: 1px solid #e2e8f0;
+              font-size: 11px;
+              line-height: 1.5;
+            }
+            .table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              font-size: 11px;
+              page-break-inside: avoid;
+            }
+            .table th, .table td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+              word-wrap: break-word;
+            }
+            .table th {
+              background-color: #f1f5f9;
+              font-weight: bold;
+              font-size: 12px;
+              padding: 10px 8px;
+            }
+            .table td {
+              font-size: 11px;
+              vertical-align: top;
+            }
+            .totales {
+              margin-top: 20px;
+              padding: 15px;
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              page-break-inside: avoid;
+            }
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              margin: 8px 0;
+              font-size: 13px;
+            }
+            .total-final {
+              font-weight: bold;
+              font-size: 14px;
+              border-top: 2px solid #cbd5e1;
+              padding-top: 10px;
+              margin-top: 10px;
+              color: #059669;
+            }
+            .section-title {
+              background: #e2e8f0;
+              padding: 10px;
+              border-radius: 6px;
+              font-weight: bold;
+              margin: 15px 0 10px 0;
+              font-size: 14px;
+            }
+            .servicio-item {
+              margin: 3px 0;
+              padding: 2px 0;
+              font-size: 10px;
+              line-height: 1.3;
+            }
+            .servicio-item:not(:last-child) {
+              border-bottom: 1px dotted #e5e7eb;
+              padding-bottom: 3px;
+            }
+            .estado-badge {
+              display: inline-block;
+              padding: 3px 8px;
+              border-radius: 4px;
+              font-size: 10px;
+              font-weight: 500;
+            }
+            .estado-pendiente { background: #fef3c7; color: #92400e; }
+            .estado-produccion { background: #dbeafe; color: #1e40af; }
+            .estado-terminado { background: #d1fae5; color: #065f46; }
+            .estado-entregado { background: #e5e7eb; color: #374151; }
+            .footer {
+              margin-top: 20px;
+              font-size: 10px;
+              color: #64748b;
+              text-align: center;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 10px;
+            }
+            @media print {
+              body {
                 margin: 0.5cm;
-                size: A4 portrait;
-              }
-              body { 
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                margin: 0;
-                padding: 0;
-                color: #333;
-                font-size: 10px;
-                line-height: 1.2;
-              }
-              .container {
-                max-width: 100%;
-                margin: 0 auto;
-              }
-              .header { 
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 15px;
-                padding-bottom: 10px;
-                border-bottom: 2px solid #2563eb;
-              }
-              .logo-section {
-                flex: 1;
-                text-align: left;
-              }
-              .logo {
-                max-width: 120px;
-                max-height: 80px;
-                margin-bottom: 5px;
-              }
-              .info-section {
-                flex: 2;
-                text-align: right;
-              }
-              .header h1 { 
-                color: #2563eb; 
-                margin: 0 0 5px 0;
-                font-size: 16px;
-                font-weight: bold;
-              }
-              .header h2 {
-                margin: 0 0 8px 0;
-                font-size: 14px;
-                color: #1e293b;
-                font-weight: 600;
-              }
-              .lab-info {
-                font-size: 9px;
-                color: #64748b;
-                margin: 2px 0;
-              }
-              .report-info {
-                background: #f8fafc; 
-                padding: 8px;
-                border-radius: 4px; 
-                margin: 8px 0;
-                border: 1px solid #e2e8f0;
-                font-size: 9px;
-              }
-              .table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                margin: 10px 0;
-                font-size: 8px;
-                page-break-inside: avoid;
-              }
-              .table th, .table td { 
-                border: 1px solid #ddd; 
-                padding: 4px;
-                text-align: left;
-                word-wrap: break-word;
-              }
-              .table th { 
-                background-color: #f1f5f9; 
-                font-weight: bold;
-                font-size: 8px;
-              }
-              .table td {
-                font-size: 8px;
-              }
-              .totales {
-                margin-top: 15px;
-                padding: 10px;
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 4px;
-                page-break-inside: avoid;
-              }
-              .total-row {
-                display: flex;
-                justify-content: space-between;
-                margin: 3px 0;
-                font-size: 9px;
-              }
-              .total-final {
-                font-weight: bold;
-                font-size: 10px;
-                border-top: 1px solid #cbd5e1;
-                padding-top: 6px;
-                margin-top: 6px;
-                color: #059669;
-              }
-              .section-title {
-                background: #e2e8f0;
-                padding: 6px;
-                border-radius: 4px;
-                font-weight: bold;
-                margin: 12px 0 8px 0;
                 font-size: 11px;
               }
-              .servicio-item {
-                margin: 1px 0;
-                padding: 0;
+              .no-print {
+                display: none;
               }
-              @media print {
-                body { margin: 0; }
-                .no-print { display: none; }
-                .container { width: 100%; }
-                .table { font-size: 7px; }
+              .container {
+                width: 100%;
               }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <!-- Encabezado con información del laboratorio -->
-              <div class="header">
-                <div class="logo-section">
-                  ${configuracionLaboratorio?.logo ? 
-                    `<img src="${configuracionLaboratorio.logo}" class="logo" alt="Logo">` : 
-                    '<div style="font-size: 24px; color: #2563eb;">🦷</div>'
-                  }
-                  <div class="lab-info">
-                    <strong>${configuracionLaboratorio?.nombre_laboratorio || 'Laboratorio Dental'}</strong><br>
-                    ${configuracionLaboratorio?.rut || ''}<br>
-                    ${configuracionLaboratorio?.direccion || ''}<br>
-                    ${configuracionLaboratorio?.telefono || ''}<br>
-                    ${configuracionLaboratorio?.email || ''}
-                  </div>
-                </div>
-                <div class="info-section">
-                  <h1>INFORME DE PRESTACIONES DENTALES</h1>
-                  <h2>${clinicaSeleccionada ? `CLÍNICA: ${clinicaSeleccionada.nombre.toUpperCase()}` : 'TODAS LAS CLÍNICAS'}</h2>
-                  <div class="report-info">
-                    <strong>Período:</strong> ${filtros.periodo === 'mes' ? `${obtenerNombreMes(filtros.mes)} ${filtros.año}` : `${filtros.fechaInicio} a ${filtros.fechaFin}`}<br>
-                    <strong>Generado:</strong> ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}<br>
-                    <strong>Régimen:</strong> ${configuracionLaboratorio?.tipo_impuesto === 'iva' ? 'IVA' : 'Honorarios'} (${configuracionLaboratorio?.porcentaje_impuesto}%)
-                  </div>
+              .table {
+                font-size: 10px;
+              }
+              .table th, .table td {
+                padding: 6px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <!-- Encabezado con información del laboratorio -->
+            <div class="header">
+              <div class="logo-section">
+                ${
+                  configuracionLaboratorio?.logo
+                    ? `<img src="${configuracionLaboratorio.logo}" class="logo" alt="Logo">`
+                    : '<div style="font-size: 32px; color: #2563eb;">🦷</div>'
+                }
+                <div class="lab-info">
+                  <strong>${configuracionLaboratorio?.nombre_laboratorio || 'Laboratorio Dental'}</strong><br>
+                  ${configuracionLaboratorio?.rut || ''}<br>
+                  ${configuracionLaboratorio?.direccion || ''}<br>
+                  ${configuracionLaboratorio?.telefono || ''}<br>
+                  ${configuracionLaboratorio?.email || ''}
                 </div>
               </div>
-
-              <div class="section-title">DETALLES DE TRABAJOS - TOTAL: ${trabajosFiltrados.length} TRABAJOS</div>
-              
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th style="width: 15%">Paciente</th>
-                    <th style="width: 15%">Clínica</th>
-                    <th style="width: 25%">Servicios</th>
-                    <th style="width: 8%">Estado</th>
-                    <th style="width: 12%">Precio Bruto</th>
-                    <th style="width: 12%">${configuracionLaboratorio?.tipo_impuesto === 'iva' ? 'IVA' : 'Retención'}</th>
-                    <th style="width: 13%">Total a Pagar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${trabajosFiltrados.map(trabajo => {
-                    const clinica = clinicas.find(c => c.id === trabajo.clinica_id);
-                    const serviciosList = trabajo.servicios.map(s => {
-                      const servicio = servicios.find(serv => serv.id === s.servicio_id);
-                      return servicio ? `<div class="servicio-item">${servicio.nombre} (x${s.cantidad})</div>` : '<div class="servicio-item">Servicio no encontrado</div>';
-                    }).join('');
-                    
-                    const montos = calcularMontosConImpuesto(trabajo.precio_total);
-                    
-                    return `
-                      <tr>
-                        <td>${trabajo.paciente}</td>
-                        <td>${clinica?.nombre || 'N/A'}</td>
-                        <td>${serviciosList}</td>
-                        <td>${trabajo.estado}</td>
-                        <td>$${trabajo.precio_total.toLocaleString()}</td>
-                        <td>$${montos.impuesto.toLocaleString()}</td>
-                        <td><strong>$${montos.neto.toLocaleString()}</strong></td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
-
-              <div class="totales">
-                <div class="section-title">RESUMEN GENERAL DEL PERÍODO</div>
-                <div class="total-row">
-                  <span>Total de Trabajos:</span>
-                  <span>${estadisticas.totalTrabajos}</span>
+              <div class="info-section">
+                <h1>INFORME DE PRESTACIONES DENTALES</h1>
+                <h2>${clinicaSeleccionada ? `CLÍNICA: ${clinicaSeleccionada.nombre.toUpperCase()}` : 'TODAS LAS CLÍNICAS'}</h2>
+                <div class="report-info">
+                  <strong>Período:</strong> ${
+                    filtros.periodo === 'mes'
+                      ? `${obtenerNombreMes(filtros.mes)} ${filtros.año}`
+                      : `${filtros.fechaInicio} a ${filtros.fechaFin}`
+                  }<br>
+                  <strong>Generado:</strong> ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}<br>
+                  <strong>Régimen:</strong> ${configuracionLaboratorio?.tipo_impuesto === 'iva' ? 'IVA' : 'Honorarios'} (${
+                    configuracionLaboratorio?.porcentaje_impuesto
+                  }%)
                 </div>
-                <div class="total-row">
-                  <span>Total Bruto:</span>
-                  <span>$${estadisticas.totalIngresos.toLocaleString()}</span>
-                </div>
-                <div class="total-row">
-                  <span>${configuracionLaboratorio?.tipo_impuesto === 'iva' ? 'IVA' : 'Retención'} (${configuracionLaboratorio?.porcentaje_impuesto}%):</span>
-                  <span>$${estadisticas.impuesto.toLocaleString()}</span>
-                </div>
-                <div class="total-row total-final">
-                  <span>TOTAL NETO A PAGAR:</span>
-                  <span><strong>$${estadisticas.neto.toLocaleString()}</strong></span>
-                </div>
-              </div>
-
-              <div style="margin-top: 15px; font-size: 8px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px;">
-                Documento generado automáticamente por DentalFlow - ${new Date().toLocaleDateString()}
-              </div>
-
-              <div class="no-print" style="margin-top: 20px; text-align: center; padding: 15px;">
-                <button onclick="window.print()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; font-size: 12px;">
-                  🖨️ Imprimir Reporte
-                </button>
-                <button onclick="window.close()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; font-size: 12px;">
-                  ❌ Cerrar
-                </button>
               </div>
             </div>
-          </body>
-        </html>
-      `);
-      ventana.document.close();
-    }
-  };
+
+            <div class="section-title">DETALLES DE TRABAJOS - TOTAL: ${trabajosFiltrados.length} TRABAJOS</div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width: 15%">Paciente</th>
+                  <th style="width: 15%">Clínica</th>
+                  <th style="width: 25%">Servicios</th>
+                  <th style="width: 10%">Estado</th>
+                  <th style="width: 12%">Precio Bruto</th>
+                  <th style="width: 12%">${configuracionLaboratorio?.tipo_impuesto === 'iva' ? 'IVA' : 'Retención'}</th>
+                  <th style="width: 13%">Total a Pagar</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trabajosFiltrados
+                  .map((trabajo) => {
+                    const clinica = clinicas.find((c) => c.id === trabajo.clinica_id);
+                    const serviciosList = trabajo.servicios
+                      .map((s) => {
+                        const servicio = servicios.find((serv) => serv.id === s.servicio_id);
+                        return servicio
+                          ? `<div class="servicio-item">${servicio.nombre} (x${s.cantidad})</div>`
+                          : '<div class="servicio-item">Servicio no encontrado</div>';
+                      })
+                      .join('');
+
+                    const montos = calcularMontosConImpuesto(trabajo.precio_total);
+
+                    // Determinar clase CSS para el estado
+                    let estadoClass = 'estado-badge ';
+                    switch (trabajo.estado) {
+                      case 'pendiente':
+                        estadoClass += 'estado-pendiente';
+                        break;
+                      case 'produccion':
+                        estadoClass += 'estado-produccion';
+                        break;
+                      case 'terminado':
+                        estadoClass += 'estado-terminado';
+                        break;
+                      case 'entregado':
+                        estadoClass += 'estado-entregado';
+                        break;
+                      default:
+                        estadoClass += 'estado-pendiente';
+                    }
+
+                    return `
+                      <tr>
+                        <td style="font-weight: 500;">${trabajo.paciente}</td>
+                        <td>${clinica?.nombre || 'N/A'}</td>
+                        <td>${serviciosList}</td>
+                        <td><span class="${estadoClass}">${obtenerTextoEstado(trabajo.estado)}</span></td>
+                        <td>$${trabajo.precio_total.toLocaleString('es-CL')}</td>
+                        <td>$${montos.impuesto.toLocaleString('es-CL')}</td>
+                        <td style="font-weight: bold; color: #059669;">$${montos.neto.toLocaleString('es-CL')}</td>
+                      </tr>
+                    `;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
+
+            <div class="totales">
+              <div class="section-title">RESUMEN GENERAL DEL PERÍODO</div>
+              <div class="total-row">
+                <span>Total de Trabajos:</span>
+                <span>${estadisticas.totalTrabajos}</span>
+              </div>
+              <div class="total-row">
+                <span>Total Bruto:</span>
+                <span>$${estadisticas.totalIngresos.toLocaleString('es-CL')}</span>
+              </div>
+              <div class="total-row">
+                <span>${configuracionLaboratorio?.tipo_impuesto === 'iva' ? 'IVA' : 'Retención'} (${
+                  configuracionLaboratorio?.porcentaje_impuesto
+                }%):</span>
+                <span>$${estadisticas.impuesto.toLocaleString('es-CL')}</span>
+              </div>
+              <div class="total-row total-final">
+                <span>TOTAL NETO A PAGAR:</span>
+                <span style="font-size: 16px;">$${estadisticas.neto.toLocaleString('es-CL')}</span>
+              </div>
+            </div>
+
+            <div class="footer">
+              Documento generado automáticamente por DentalFlow - ${new Date().toLocaleDateString()}
+            </div>
+
+            <div class="no-print" style="margin-top: 25px; text-align: center; padding: 20px;">
+              <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; margin: 8px; font-size: 14px; font-weight: 500;">
+                🖨️ Imprimir Reporte
+              </button>
+              <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; margin: 8px; font-size: 14px; font-weight: 500;">
+                ❌ Cerrar
+              </button>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    ventana.document.close();
+  }
+};
 
   const exportarExcel = () => {
     const headers = ['Paciente', 'Clínica', 'Servicios', 'Estado', 'Precio Bruto', 'Precio Neto', 'Impuesto', 'Fecha Recibido'];

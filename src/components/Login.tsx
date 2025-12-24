@@ -1,4 +1,3 @@
-// Reemplaza TODO el archivo Login.tsx con esta versión corregida:
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -11,56 +10,53 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  
-  if (!email.trim() || !password) {
-    setError('Por favor completa todos los campos');
-    return;
-  }
-
-  setCargando(true);
-  
-  try {
-    console.log('🔐 Intentando login con:', email);
+    e.preventDefault();
+    setError('');
     
-    // 1. Limpiar sesión previa
-    await supabase.auth.signOut();
-    
-    // 2. Login
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password: password,
-    });
-
-    if (loginError) {
-      throw loginError;
+    if (!email.trim() || !password) {
+      setError('Por favor completa todos los campos');
+      return;
     }
 
-    console.log('✅ Login exitoso:', data.user?.email);
+    setCargando(true);
     
-    // 3. Esperar y verificar
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('La sesión no se estableció');
+    try {
+      console.log('🔐 Intentando login con:', email);
+      
+      // Login directo
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (loginError) {
+        throw loginError;
+      }
+
+      console.log('✅ Login exitoso:', data.user?.email);
+      
+      // SOLUCIÓN: Redirigir con recarga completa de página
+      // Esto asegura que la sesión se establezca completamente
+      // antes de que Dashboard verifique la autenticación
+      window.location.assign('/dashboard');
+      
+    } catch (error: any) {
+      console.error('❌ Error en login:', error);
+      
+      // Mensajes de error más amigables
+      if (error.message?.includes('Invalid login credentials')) {
+        setError('Email o contraseña incorrectos');
+      } else if (error.message?.includes('Email not confirmed')) {
+        setError('Por favor confirma tu email antes de iniciar sesión');
+      } else {
+        setError(error.message || 'Error al iniciar sesión');
+      }
+      
+      setPassword('');
+      setCargando(false); // Solo detener carga si hay error
     }
-    
-    console.log('🎉 Redirigiendo al dashboard...');
-    
-    // 4. REDIRECCIÓN MANUAL Y FORZADA
-    window.location.href = '/dashboard';
-    
-  } catch (error: any) {
-    console.error('❌ Error en login:', error);
-    setError(error.message || 'Error desconocido');
-    setPassword('');
-  } finally {
-    setCargando(false);
-  }
-};
+    // Se elimina el 'finally' block para permitir la recarga de página
+  };
 
   const styles = {
     container: {

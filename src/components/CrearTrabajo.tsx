@@ -1,607 +1,601 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Servicio, Trabajo, trabajos } from '../data/database';
 import { supabase } from '../lib/supabase';
-import { useLocation } from 'react-router-dom';
 
-
-interface Clinica {
-  id: string;
-  nombre: string;
+interface CrearTrabajoProps {
+  onBack: () => void;
 }
 
-interface Dentista {
+// Definir interfaces para los datos de Supabase
+interface ClinicaSupabase {
   id: string;
   nombre: string;
-  clinica_id: string;
+  direccion?: string;
+  telefono?: string;
+  email?: string;
+  usuario_id: string;
+  created_at: string;
+}
+
+interface DentistaSupabase {
+  id: string;
+  nombre: string;
   especialidad: string;
+  clinica_id?: string;
+  usuario_id: string;
+  created_at: string;
 }
 
-interface Servicio {
+interface LaboratoristaSupabase {
+  id: string;
+  nombre: string;
+  especialidad: string;
+  usuario_id: string;
+  created_at: string;
+}
+
+interface ServicioSupabase {
   id: string;
   nombre: string;
   precio_base: number;
   categoria: string;
   activo: boolean;
-  descripcion?: string;
+  usuario_id: string;
+  creado_en: string;
+  updated_at: string;
+  created_at: string;
 }
 
-interface Laboratorista {
-  id: string;
-  nombre: string;
-  especialidad: string;
-  activo: boolean;
-}
-
-interface TrabajoPaciente {
+interface TrabajoAgregado {
   id: string;
   paciente: string;
-  run?: string;
-  dentista_id?: string;
-  laboratorista_id?: string;
-  servicios: Array<{
-    servicio: Servicio;
-    cantidad: number;
-    piezasDentales: string[];
-    notas?: string;
-  }>;
-  notasGenerales?: string;
+  rutPaciente: string;
+  servicio: ServicioSupabase;
+  cantidad: number;
+  piezaDental: string;
+  precioUnitario: number;
+  observaciones?: string;
 }
 
-const CrearTrabajo: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  console.log('📍 CrearTrabajo - Ruta actual:', location.pathname);
-  
+// Interfaz extendida para incluir rutPaciente
+interface TrabajoConRut extends Omit<Trabajo, 'rutPaciente'> {
+  rutPaciente?: string;
+}
+
+type IdiomaType = 'es' | 'en';
+
+interface ConfiguracionDetallada {
+  tooth: string;
+  materialConfig: string;
+  baseMaterial: string;
+  implantBased: boolean;
+  customAbstinent: string;
+  additionalScans: boolean;
+  minimalThickness: number;
+  gapWidthCement: number;
+  orsStockAbstinent: boolean;
+  selectedMaterials: string[];
+  materialType: string;
+  toothColor: string;
+}
+
+// Mismas categorías que en GestionPrecios.tsx
+const categorias = {
+  'todos': '📋 Todos',
+  'fija': '🦷 Prótesis Fija',
+  'removible': '👄 Prótesis Removible', 
+  'implantes': '⚡ Implantes',
+  'ortodoncia': '🎯 Ortodoncia',
+  'reparaciones': '🔧 Reparaciones',
+  'metales': '🔩 Metales',
+  'attachments': '📎 Attachments',
+  'ceromeros_composites': '🦷 Cerómeros y Composites',
+  'planos_estampados': '📐 Planos y Estampados',
+  'otros': '📦 Otros Servicios'
+};
+
+// Función de debounce para la búsqueda
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
   useEffect(() => {
-    console.log('📍 CrearTrabajo - useEffect ejecutado');
-    
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
     return () => {
-      console.log('📍 CrearTrabajo - Componente desmontado');
+      clearTimeout(handler);
     };
-  }, []);
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+const CrearTrabajo: React.FC<CrearTrabajoProps> = ({ onBack }) => {
+  const [clinicas, setClinicas] = useState<ClinicaSupabase[]>([]);
+  const [dentistas, setDentistas] = useState<DentistaSupabase[]>([]);
+  const [laboratoristas, setLaboratoristas] = useState<LaboratoristaSupabase[]>([]);
+  const [servicios, setServicios] = useState<ServicioSupabase[]>([]);
   
-  // Clave para localStorage
-  const STORAGE_KEY = 'crearTrabajoEstado';
-  
-  // Estados para datos cargados
-  const [clinicas, setClinicas] = useState<Clinica[]>([]);
-  const [dentistas, setDentistas] = useState<Dentista[]>([]);
-  const [servicios, setServicios] = useState<Servicio[]>([]);
-  const [laboratoristas, setLaboratoristas] = useState<Laboratorista[]>([]);
-  const [cargando, setCargando] = useState(false);
-  
-  // Estados del formulario activo
   const [clinicaSeleccionada, setClinicaSeleccionada] = useState<string>('');
   const [dentistaSeleccionado, setDentistaSeleccionado] = useState<string>('');
   const [laboratoristaSeleccionado, setLaboratoristaSeleccionado] = useState<string>('');
   const [nombrePaciente, setNombrePaciente] = useState<string>('');
-  const [runPaciente, setRunPaciente] = useState<string>('');
-  const [notasGenerales, setNotasGenerales] = useState<string>('');
-  
-  // Estados para selección de servicios
-  const [servicioSeleccionado, setServicioSeleccionado] = useState<Servicio | null>(null);
+  const [rutPaciente, setRutPaciente] = useState<string>('');
+  const [trabajosAgregados, setTrabajosAgregados] = useState<TrabajoAgregado[]>([]);
+  const [modoDetallado, setModoDetallado] = useState<boolean>(false);
+  const [idioma, setIdioma] = useState<IdiomaType>('es');
+  const [cantidades, setCantidades] = useState<{ [key: string]: number }>({});
+  const [piezasDentales, setPiezasDentales] = useState<{ [key: string]: string }>({});
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
-  const [busqueda, setBusqueda] = useState<string>('');
-  const [piezasSeleccionadas, setPiezasSeleccionadas] = useState<string[]>([]);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState<boolean>(false);
+  const [cargandoServicios, setCargandoServicios] = useState<boolean>(false);
+  const [terminoBusqueda, setTerminoBusqueda] = useState<string>('');
+  const [cargandoDatos, setCargandoDatos] = useState<boolean>(true);
   
-  // Estados para la lista de trabajos
-  const [trabajosPacientes, setTrabajosPacientes] = useState<TrabajoPaciente[]>([]);
-  const [serviciosPacienteActual, setServiciosPacienteActual] = useState<
-    Array<{
-      servicio: Servicio;
-      cantidad: number;
-      piezasDentales: string[];
-      notas?: string;
-    }>
-  >([]);
-  
-  const [fechaEntregaEstimada, setFechaEntregaEstimada] = useState<string>('');
-  const [mostrarOdontogramaModal, setMostrarOdontogramaModal] = useState<boolean>(false);
-  const [hoveredServicio, setHoveredServicio] = useState<string | null>(null);
+  const [configDetallada, setConfigDetallada] = useState<ConfiguracionDetallada>({
+    tooth: '',
+    materialConfig: 'Default',
+    baseMaterial: 'Solar Laser / 30 Pinz',
+    implantBased: false,
+    customAbstinent: '',
+    additionalScans: false,
+    minimalThickness: 0.5,
+    gapWidthCement: 0.1,
+    orsStockAbstinent: false,
+    selectedMaterials: [],
+    materialType: 'Zirconia',
+    toothColor: 'A2'
+  });
 
-  // Piezas dentales para el odontograma
-  const piezasDentales = [
-    '18', '17', '16', '15', '14', '13', '12', '11',
-    '21', '22', '23', '24', '25', '26', '27', '28',
-    '48', '47', '46', '45', '44', '43', '42', '41',
-    '31', '32', '33', '34', '35', '36', '37', '38'
+  // Usar debounce para la búsqueda (300ms)
+  const terminoBusquedaDebounced = useDebounce(terminoBusqueda, 300);
+
+  // Referencia para el debounce
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Materiales organizados
+  const materialCategories = [
+    { 
+      category: 'Dentición Residual', 
+      items: ['Diente adyacente', 'Orientar endoestructura', 'Injerto en puente', 'Antagonista'], 
+      icon: '🏗️'
+    },
+    { 
+      category: 'Barras', 
+      items: ['Pilar de barra', 'Segmento de barra'], 
+      icon: '📏'
+    },
+    { 
+      category: 'Removibles y Aparatos', 
+      items: ['Dentadura completa', 'Corona telescópica primaria', 'Corona telescópica secundaria'], 
+      icon: '👄'
+    },
+    { 
+      category: 'Fresado Digital por Copia', 
+      items: ['Fresado digital por copia'], 
+      icon: '💻'
+    },
+    { 
+      category: 'Inlays, Onlays y Carillas', 
+      items: ['Inlay/Onlay', 'Carilla'], 
+      icon: '🔩'
+    },
+    { 
+      category: 'Pónticos y Mockup', 
+      items: ['Póntico anatómico', 'Póntico excelente (Provisional)'], 
+      icon: '🦷'
+    },
+    { 
+      category: 'Coronas y Copings', 
+      items: ['Corona amitónica', 'Corona excelente (Cordón frontal)'], 
+      icon: '👑'
+    }
   ];
 
-  // Función para guardar estado en localStorage
-  const guardarEstadoEnStorage = () => {
-    const estado = {
-      clinicaSeleccionada,
-      dentistaSeleccionado,
-      laboratoristaSeleccionado,
-      nombrePaciente,
-      runPaciente,
-      notasGenerales,
-      categoriaSeleccionada,
-      busqueda,
-      trabajosPacientes,
-      serviciosPacienteActual,
-      fechaEntregaEstimada,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
-  };
+  const materialTypes = [
+    'Zirconia', 'Zirconia Multilayer', 'Zirconia Translúcido',
+    'Acrílico/PMMA', 'Composite', 'Metal HP', 'Titanio',
+    'Metal HP (Láser)', 'Titanio (Láser)', '30 Print'
+  ];
 
-  // Función para cargar estado desde localStorage
-  const cargarEstadoDesdeStorage = () => {
-    try {
-      const estadoGuardado = localStorage.getItem(STORAGE_KEY);
-      if (estadoGuardado) {
-        const estado = JSON.parse(estadoGuardado);
-        
-        if (estado.clinicaSeleccionada) setClinicaSeleccionada(estado.clinicaSeleccionada);
-        if (estado.dentistaSeleccionado) setDentistaSeleccionado(estado.dentistaSeleccionado);
-        if (estado.laboratoristaSeleccionado) setLaboratoristaSeleccionado(estado.laboratoristaSeleccionado);
-        if (estado.nombrePaciente) setNombrePaciente(estado.nombrePaciente);
-        if (estado.runPaciente) setRunPaciente(estado.runPaciente);
-        if (estado.notasGenerales) setNotasGenerales(estado.notasGenerales);
-        if (estado.categoriaSeleccionada) setCategoriaSeleccionada(estado.categoriaSeleccionada);
-        if (estado.busqueda) setBusqueda(estado.busqueda);
-        if (estado.trabajosPacientes) setTrabajosPacientes(estado.trabajosPacientes);
-        if (estado.serviciosPacienteActual) setServiciosPacienteActual(estado.serviciosPacienteActual);
-        if (estado.fechaEntregaEstimada) setFechaEntregaEstimada(estado.fechaEntregaEstimada);
-      }
-    } catch (error) {
-      console.error('Error cargando estado desde localStorage:', error);
+  const toothColors = ['A1', 'A2', 'A3', 'A3.5', 'A4', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2', 'C3', 'C4', 'D2', 'D3', 'D4'];
+
+  const textos = {
+    es: {
+      title: '📋 Crear Lista de Trabajo',
+      backButton: '← Volver al Dashboard',
+      clinica: 'Clínica *',
+      dentista: 'Dentista *',
+      laboratorista: 'Laboratorista (Opcional)',
+      paciente: 'Nombre del Paciente *',
+      rut: 'RUT (Opcional)',
+      modoSimple: '🔄 Modo Simple',
+      modoDetallado: '⚙️ Modo Detallado',
+      finalizar: '✅ Finalizar y Guardar Trabajo',
+      agregar: 'Agregar',
+      eliminar: 'Eliminar',
+      total: 'TOTAL GENERAL',
+      trabajosAgregados: 'Trabajos Agregados',
+      configuracion: 'Configuración Detallada',
+      diente: 'Diente',
+      materialConfig: 'Configuración de Material (local)',
+      materialBase: 'Material Base',
+      optionsParams: 'Opciones y Parámetros',
+      implantBased: '¿Basado en implante?',
+      customAbstinent: 'Abstinencia Personalizada',
+      additionalScans: '¿Escaneos adicionales?',
+      preopModel: 'Modelo Pre-operatorio',
+      minimalThickness: 'Espesor mínimo',
+      gapWidthCement: 'Ancho de cemento',
+      screwRelated: 'Relacionado con tornillos',
+      orsStockAbstinent: 'Abstinencia de stock Ors',
+      materialType: 'Tipo de Material',
+      toothColor: 'Color del Diente',
+      crearTrabajoDetallado: '✅ Crear Trabajo Detallado',
+      tiposTrabajos: 'Tipos de Trabajos',
+      seleccionaMateriales: 'Selecciona Materiales',
+      materialUtilizar: 'Material a Utilizar',
+      opcionesParametros: 'Opciones y Parámetros',
+      recuperarTrabajo: 'Recuperar trabajo guardado',
+      limpiarTrabajo: '🗑️ Limpiar trabajo',
+      autosaveMessage: '💾 Trabajo autoguardado',
+      categoriaTodos: 'Todos',
+      buscarServicio: 'Buscar servicio...',
+      sinServicios: 'No hay servicios disponibles',
+      cargandoServicios: 'Cargando servicios...',
+      cargandoDatos: 'Cargando datos...',
+      buscando: 'Buscando...',
+      resultadosPara: 'Resultados para:',
+      enCategoria: 'en',
+      serviciosEncontrados: 'servicios encontrados'
+    },
+    en: {
+      title: '📋 Create Work List',
+      backButton: '← Back to Dashboard',
+      clinica: 'Clinic *',
+      dentista: 'Dentist *',
+      laboratorista: 'Laboratory Technician (Optional)',
+      paciente: 'Patient Name *',
+      rut: 'RUT (Optional)',
+      modoSimple: '🔄 Simple Mode',
+      modoDetallado: '⚙️ Detailed Mode',
+      finalizar: '✅ Finish and Save Work',
+      agregar: 'Add',
+      eliminar: 'Delete',
+      total: 'TOTAL',
+      trabajosAgregados: 'Added Works',
+      configuracion: 'Detailed Configuration',
+      diente: 'Tooth',
+      materialConfig: 'Material Configuration (local)',
+      materialBase: 'Base Material',
+      optionsParams: 'Options & Parameters',
+      implantBased: 'Implant-based?',
+      customAbstinent: 'Custom Abstinent',
+      additionalScans: 'Additional Scans?',
+      preopModel: 'Pre-op Model',
+      minimalThickness: 'Minimal thickness',
+      gapWidthCement: 'Gap width of cement',
+      screwRelated: 'Screw-related',
+      orsStockAbstinent: 'Ors stock abstinent',
+      materialType: 'Material Type',
+      toothColor: 'Tooth Color',
+      crearTrabajoDetallado: '✅ Create Detailed Work',
+      tiposTrabajos: 'Work Types',
+      seleccionaMateriales: 'Select Materials',
+      materialUtilizar: 'Material to Use',
+      opcionesParametros: 'Options & Parameters',
+      recuperarTrabajo: 'Recover saved work',
+      limpiarTrabajo: '🗑️ Clear work',
+      autosaveMessage: '💾 Work autosaved',
+      categoriaTodos: 'All',
+      buscarServicio: 'Search service...',
+      sinServicios: 'No services available',
+      cargandoServicios: 'Loading services...',
+      cargandoDatos: 'Loading data...',
+      buscando: 'Searching...',
+      resultadosPara: 'Results for:',
+      enCategoria: 'in',
+      serviciosEncontrados: 'services found'
     }
   };
 
-  // Limpiar localStorage
-  const limpiarStorage = () => {
-    localStorage.removeItem(STORAGE_KEY);
-  };
+  const t = textos[idioma];
 
-  // Efecto para guardar estado cuando cambie
+  // Cargar datos desde Supabase
   useEffect(() => {
-    guardarEstadoEnStorage();
-  }, [
-    clinicaSeleccionada,
-    dentistaSeleccionado,
-    laboratoristaSeleccionado,
-    nombrePaciente,
-    runPaciente,
-    notasGenerales,
-    categoriaSeleccionada,
-    busqueda,
-    trabajosPacientes,
-    serviciosPacienteActual,
-    fechaEntregaEstimada,
-  ]);
-
-  // Cargar datos al montar el componente
-  useEffect(() => {
-    let isMounted = true;
-
-    const init = async () => {
-      // Primero cargar el estado guardado
-      if (isMounted) cargarEstadoDesdeStorage();
-      
-      // Luego cargar datos desde supabase
-      await cargarDatos();
-      
-      // Establecer fecha de entrega por defecto si no hay una guardada
-      if (isMounted && !fechaEntregaEstimada) {
-        const fecha = new Date();
-        fecha.setDate(fecha.getDate() + 7);
-        setFechaEntregaEstimada(fecha.toISOString().split('T')[0]);
-      }
-    };
-    
-    init();
-
-    return () => {
-      isMounted = false;
-    };
+    cargarDatosIniciales();
   }, []);
 
-  // También guardar estado cuando la pestaña se oculta
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        guardarEstadoEnStorage();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // También guardar antes de que el usuario cierre la página
-    window.addEventListener('beforeunload', guardarEstadoEnStorage);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', guardarEstadoEnStorage);
-    };
-  }, [
-    clinicaSeleccionada,
-    dentistaSeleccionado,
-    laboratoristaSeleccionado,
-    nombrePaciente,
-    runPaciente,
-    notasGenerales,
-    categoriaSeleccionada,
-    busqueda,
-    trabajosPacientes,
-    serviciosPacienteActual,
-    fechaEntregaEstimada,
-  ]);
-
-  const cargarDatos = async () => {
+  const cargarDatosIniciales = async () => {
     try {
-      setCargando(true);
+      setCargandoDatos(true);
+      
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (!user) {
-        // NO redirigir automáticamente, solo mostrar en consola
-        console.log('Usuario no autenticado');
+        console.error('No hay usuario autenticado');
         return;
       }
 
-      const [clinicasRes, dentistasRes, serviciosRes, laboratoristasRes] = await Promise.all([
-        supabase.from('clinicas').select('*').eq('usuario_id', user.id),
-        supabase.from('dentistas').select('*').eq('usuario_id', user.id),
-        supabase.from('servicios').select('*').eq('usuario_id', user.id).eq('activo', true),
-        supabase.from('laboratoristas').select('*').eq('usuario_id', user.id).eq('activo', true)
-      ]);
+      // Cargar clínicas del usuario (sin filtro de activo)
+      const { data: clinicasData, error: clinicasError } = await supabase
+        .from('clinicas')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .order('nombre', { ascending: true });
 
-      if (clinicasRes.data) setClinicas(clinicasRes.data);
-      if (dentistasRes.data) setDentistas(dentistasRes.data);
-      if (serviciosRes.data) setServicios(serviciosRes.data);
-      if (laboratoristasRes.data) setLaboratoristas(laboratoristasRes.data);
+      if (clinicasError) {
+        console.error('Error cargando clínicas:', clinicasError);
+        throw clinicasError;
+      }
+      setClinicas(clinicasData || []);
+      console.log('Clínicas cargadas:', clinicasData?.length || 0);
 
-    } catch (error) {
-      console.error('Error cargando datos:', error);
+      // Cargar dentistas del usuario (sin filtro de activo)
+      const { data: dentistasData, error: dentistasError } = await supabase
+        .from('dentistas')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .order('nombre', { ascending: true });
+
+      if (dentistasError) {
+        console.error('Error cargando dentistas:', dentistasError);
+        throw dentistasError;
+      }
+      setDentistas(dentistasData || []);
+      console.log('Dentistas cargados:', dentistasData?.length || 0);
+
+      // Cargar laboratoristas del usuario (sin filtro de activo)
+      const { data: laboratoristasData, error: laboratoristasError } = await supabase
+        .from('laboratoristas')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .order('nombre', { ascending: true });
+
+      if (laboratoristasError) {
+        console.error('Error cargando laboratoristas:', laboratoristasError);
+        throw laboratoristasError;
+      }
+      setLaboratoristas(laboratoristasData || []);
+      console.log('Laboratoristas cargados:', laboratoristasData?.length || 0);
+
+      // Cargar servicios del usuario (mantenemos filtro de activo porque la tabla servicios sí tiene esta columna)
+      await cargarServicios();
+
+    } catch (error: any) {
+      console.error('Error cargando datos iniciales:', error);
     } finally {
-      setCargando(false);
+      setCargandoDatos(false);
+    }
+  };
+
+  const cargarServicios = async () => {
+    try {
+      setCargandoServicios(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error('No hay usuario autenticado');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('servicios')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .eq('activo', true)
+        .order('categoria', { ascending: true })
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+
+      console.log('Servicios cargados desde Supabase:', data?.length || 0, 'servicios');
+      setServicios(data || []);
+
+    } catch (error: any) {
+      console.error('Error cargando servicios:', error);
+    } finally {
+      setCargandoServicios(false);
     }
   };
 
   // Filtrar dentistas por clínica seleccionada
-  const dentistasFiltrados = dentistas.filter(d => d.clinica_id === clinicaSeleccionada);
+  const dentistasFiltrados = useMemo(() => {
+    if (!clinicaSeleccionada) return dentistas;
+    return dentistas.filter(dentista => dentista.clinica_id === clinicaSeleccionada);
+  }, [clinicaSeleccionada, dentistas]);
 
-  // Filtrar servicios por categoría y búsqueda
-  const serviciosFiltrados = servicios.filter(servicio => {
-    const coincideCategoria = categoriaSeleccionada === 'todos' || servicio.categoria === categoriaSeleccionada;
-    const coincideBusqueda = servicio.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-                           (servicio.descripcion && servicio.descripcion.toLowerCase().includes(busqueda.toLowerCase()));
-    return coincideCategoria && coincideBusqueda;
-  });
-
-  // Obtener categorías únicas
-  const categorias = ['todos', ...Array.from(new Set(servicios.map(s => s.categoria)))];
-
-  // Agregar servicio SIN piezas dentales
-  const agregarServicioSinPiezas = (servicio: Servicio) => {
-    if (!nombrePaciente) {
-      alert('Por favor completa la información del paciente primero');
-      return;
-    }
-
-    const nuevoServicio = {
-      servicio: servicio,
-      cantidad: 1,
-      piezasDentales: [],
-      notas: ''
+  const getToothColorHex = (color: string): string => {
+    const colorMap: {[key: string]: string} = {
+      'A1': '#fffaf0', 'A2': '#fef3c7', 'A3': '#fde68a', 'A3.5': '#fcd34d', 'A4': '#fbbf24',
+      'B1': '#fef9c3', 'B2': '#fef08a', 'B3': '#fde047', 'B4': '#facc15',
+      'C1': '#fef3c7', 'C2': '#fde68a', 'C3': '#fcd34d', 'C4': '#fbbf24',
+      'D2': '#fed7aa', 'D3': '#fdba74', 'D4': '#fb923c'
     };
+    return colorMap[color] || '#fff';
+  };
 
-    setServiciosPacienteActual([...serviciosPacienteActual, nuevoServicio]);
+  // Filtrar servicios por categoría y búsqueda con useMemo para optimización
+  const serviciosFiltrados = useMemo(() => {
+    if (servicios.length === 0) return [];
+
+    let filtrados = servicios;
     
-    // Feedback visual
-    setTimeout(() => {
-      alert(`✅ ${servicio.nombre} agregado al paciente (sin piezas específicas)`);
-    }, 100);
-  };
-
-  // Agregar servicio CON piezas dentales (desde modal)
-  const agregarServicioConPiezas = () => {
-    if (!servicioSeleccionado || !nombrePaciente) {
-      alert('Por favor completa la información del paciente primero');
-      return;
+    // Filtrar por categoría
+    if (categoriaSeleccionada !== 'todos') {
+      filtrados = filtrados.filter(servicio => servicio.categoria === categoriaSeleccionada);
     }
-
-    if (piezasSeleccionadas.length === 0) {
-      const confirmar = window.confirm('No has seleccionado ninguna pieza dental. ¿Deseas continuar sin especificar pieza?');
-      if (!confirmar) return;
-    }
-
-    const nuevoServicio = {
-      servicio: servicioSeleccionado,
-      cantidad: 1,
-      piezasDentales: [...piezasSeleccionadas],
-      notas: ''
-    };
-
-    setServiciosPacienteActual([...serviciosPacienteActual, nuevoServicio]);
     
-    // Cerrar modal y resetear
-    setMostrarOdontogramaModal(false);
-    setServicioSeleccionado(null);
-    setPiezasSeleccionadas([]);
-    
-    // Feedback visual
-    setTimeout(() => {
-      alert(`✅ ${servicioSeleccionado.nombre} agregado al paciente`);
-    }, 100);
-  };
-
-  // Función para abrir modal de odontograma
-  const abrirOdontogramaModal = (servicio: Servicio) => {
-    setServicioSeleccionado(servicio);
-    setMostrarOdontogramaModal(true);
-    setPiezasSeleccionadas([]);
-  };
-
-  // Agregar paciente a la lista de trabajos
-  const agregarPacienteALista = () => {
-    if (!nombrePaciente) {
-      alert('Por favor ingresa el nombre del paciente');
-      return;
+    // Filtrar por término de búsqueda
+    if (terminoBusquedaDebounced.trim()) {
+      const terminoLower = terminoBusquedaDebounced.toLowerCase().trim();
+      filtrados = filtrados.filter(servicio => 
+        servicio.nombre.toLowerCase().includes(terminoLower) ||
+        (categorias[servicio.categoria as keyof typeof categorias]?.toLowerCase() || '').includes(terminoLower)
+      );
     }
-
-    if (serviciosPacienteActual.length === 0) {
-      alert('Por favor agrega al menos un servicio para este paciente');
-      return;
-    }
-
-    const nuevoPaciente: TrabajoPaciente = {
-      id: Date.now().toString() + Math.random(),
-      paciente: nombrePaciente,
-      run: runPaciente || undefined,
-      dentista_id: dentistaSeleccionado || undefined,
-      laboratorista_id: laboratoristaSeleccionado || undefined,
-      servicios: [...serviciosPacienteActual],
-      notasGenerales: notasGenerales || undefined
-    };
-
-    setTrabajosPacientes([...trabajosPacientes, nuevoPaciente]);
     
-    // Resetear para nuevo paciente
-    setNombrePaciente('');
-    setRunPaciente('');
-    setNotasGenerales('');
-    setServiciosPacienteActual([]);
-    setServicioSeleccionado(null);
-    setPiezasSeleccionadas([]);
-    
-    alert(`✅ Paciente "${nuevoPaciente.paciente}" agregado a la lista`);
+    return filtrados;
+  }, [servicios, categoriaSeleccionada, terminoBusquedaDebounced]);
+
+  // Formatear precio en CLP (igual que en GestionPrecios.tsx)
+  const formatearPrecioCLP = (precio: number) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(precio);
   };
 
-  // Eliminar paciente de la lista
-  const eliminarPacienteDeLista = (id: string) => {
-    setTrabajosPacientes(trabajosPacientes.filter(t => t.id !== id));
-  };
-
-  // Eliminar servicio del paciente actual
-  const eliminarServicioDePaciente = (index: number) => {
-    const nuevosServicios = [...serviciosPacienteActual];
-    nuevosServicios.splice(index, 1);
-    setServiciosPacienteActual(nuevosServicios);
-  };
-
-  // Calcular total para un paciente
-  const calcularTotalPaciente = (servicios: any[]) => {
-    return servicios.reduce((total, item) => 
-      total + (item.servicio.precio_base * item.cantidad), 0
-    );
-  };
-
-  // Calcular total general
-  const calcularTotalGeneral = () => {
-    return trabajosPacientes.reduce((total, paciente) => 
-      total + calcularTotalPaciente(paciente.servicios), 0
-    );
-  };
-
-  // Guardar todos los trabajos en la base de datos
-  const guardarTodosLosTrabajos = async () => {
-    if (trabajosPacientes.length === 0) {
-      alert('No hay pacientes en la lista para guardar');
-      return;
-    }
-
-    if (!clinicaSeleccionada) {
-      alert('Por favor selecciona una clínica');
-      return;
-    }
-
-    try {
-      setCargando(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        alert('No hay usuario autenticado');
-        return;
-      }
-
-      // Preparar todos los trabajos para insertar
-      const trabajosParaBD = trabajosPacientes.map(paciente => {
-        const serviciosParaBD = paciente.servicios.map(item => ({
-          servicio_id: item.servicio.id,
-          cantidad: item.cantidad,
-          precio_unitario: item.servicio.precio_base,
-          precio_total: item.servicio.precio_base * item.cantidad,
-          nombre: item.servicio.nombre,
-          piezas_dentales: item.piezasDentales.length > 0 ? item.piezasDentales : null,
-          notas: item.notas || null
-        }));
-
-        return {
-          paciente: paciente.paciente.trim(),
-          run_paciente: paciente.run?.trim() || null,
-          clinica_id: clinicaSeleccionada,
-          dentista_id: paciente.dentista_id || null,
-          laboratorista_id: paciente.laboratorista_id || null,
-          servicios: serviciosParaBD,
-          precio_total: calcularTotalPaciente(paciente.servicios),
-          usuario_id: user.id,
-          estado: 'pendiente',
-          notas: paciente.notasGenerales || null,
-          fecha_entrega_estimada: fechaEntregaEstimada,
-          fecha_creacion: new Date().toISOString()
-        };
-      });
-
-      // Insertar todos los trabajos
-      const { data, error } = await supabase
-        .from('trabajos')
-        .insert(trabajosParaBD)
-        .select();
-
-      if (error) throw error;
-
-      const mensaje = trabajosPacientes.length === 1 
-        ? '✅ ¡Trabajo creado exitosamente!' 
-        : `✅ ¡${trabajosPacientes.length} trabajos creados exitosamente!`;
-
-      alert(mensaje);
-      resetearTodo();
-      navigate('/trabajos');
-
-    } catch (error: any) {
-      console.error('Error creando trabajos:', error);
-      alert(`❌ Error al crear los trabajos: ${error.message}`);
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  // Resetear todo
-  const resetearTodo = () => {
-    setClinicaSeleccionada('');
-    setDentistaSeleccionado('');
-    setLaboratoristaSeleccionado('');
-    setNombrePaciente('');
-    setRunPaciente('');
-    setTrabajosPacientes([]);
-    setServiciosPacienteActual([]);
-    setNotasGenerales('');
-    setServicioSeleccionado(null);
-    setPiezasSeleccionadas([]);
-    setMostrarOdontogramaModal(false);
-    setBusqueda('');
-    setCategoriaSeleccionada('todos');
-    
-    // Limpiar localStorage
-    limpiarStorage();
-    
-    const fecha = new Date();
-    fecha.setDate(fecha.getDate() + 7);
-    setFechaEntregaEstimada(fecha.toISOString().split('T')[0]);
-  };
-
-  // Función para manejar selección de piezas dentales
-  const togglePiezaDental = (pieza: string) => {
-    setPiezasSeleccionadas(prev => {
-      if (prev.includes(pieza)) {
-        return prev.filter(p => p !== pieza);
-      } else {
-        return [...prev, pieza];
-      }
-    });
-  };
-
-  // Validaciones
-  const puedeAgregarPaciente = nombrePaciente && serviciosPacienteActual.length > 0;
-  const puedeGuardarTodo = clinicaSeleccionada && trabajosPacientes.length > 0;
-
-  const styles: { [key: string]: React.CSSProperties } = {
+  // Estilos siguiendo el Dashboard
+  const styles = {
     container: {
-      padding: '20px',
+      minHeight: '100vh',
       backgroundColor: '#f8fafc',
-      minHeight: '100vh'
+      color: '#1e293b',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     },
     header: {
+      padding: '1rem 2rem',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '1.5rem',
-      flexWrap: 'wrap',
-      gap: '1rem'
+      backgroundColor: 'white',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      borderBottom: '1px solid #e2e8f0',
+      position: 'sticky' as const,
+      top: 0,
+      zIndex: 100
     },
-    title: {
-      color: '#1e293b',
+    logo: {
       fontSize: '1.75rem',
-      fontWeight: 'bold',
+      fontWeight: '700',
+      color: '#3b82f6',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      cursor: 'pointer'
+    },
+    userSection: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1.5rem'
+    },
+    userInfo: {
+      textAlign: 'right' as const
+    },
+    userName: {
+      fontSize: '0.95rem',
+      fontWeight: '600',
+      color: '#1e293b',
       margin: 0
     },
-    backButton: {
-      backgroundColor: '#64748b',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      border: 'none',
-      borderRadius: '0.5rem',
+    userRole: {
+      fontSize: '0.875rem',
+      color: '#64748b',
+      margin: 0
+    },
+    mainContent: {
+      padding: '2rem',
+      maxWidth: '1400px',
+      margin: '0 auto'
+    },
+    welcomeSection: {
+      backgroundColor: 'white',
+      padding: '2.5rem',
+      borderRadius: '0.75rem',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '2rem',
+      position: 'relative' as const
+    },
+    welcomeTitle: {
+      fontSize: '2rem',
+      fontWeight: '700',
+      marginBottom: '0.5rem',
+      color: '#1e293b'
+    },
+    welcomeSubtitle: {
+      fontSize: '1.125rem',
+      color: '#64748b',
+      marginBottom: '2rem',
+      lineHeight: '1.6'
+    },
+    // Selector de idioma
+    languageSelector: {
+      display: 'flex',
+      gap: '0.5rem',
+      alignItems: 'center'
+    },
+    languageButton: {
+      padding: '0.5rem 1rem',
+      border: '1px solid #cbd5e1',
+      borderRadius: '6px',
+      backgroundColor: 'white',
+      color: '#475569',
       cursor: 'pointer',
+      fontSize: '14px',
       fontWeight: '500',
+      transition: 'all 0.2s ease'
+    },
+    languageButtonActive: {
+      backgroundColor: '#3b82f6',
+      color: 'white',
+      borderColor: '#3b82f6'
+    },
+    // Selector de modo
+    modeSelector: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem'
+      gap: '1rem',
+      marginBottom: '2rem',
+      flexWrap: 'wrap' as const
     },
-    configPanel: {
+    modeButton: {
+      padding: '0.75rem 1.5rem',
+      border: '2px solid #e2e8f0',
+      borderRadius: '8px',
       backgroundColor: 'white',
-      padding: '1.5rem',
-      borderRadius: '1rem',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      marginBottom: '1.5rem'
-    },
-    configTitle: {
-      color: '#1e293b',
-      fontSize: '1.25rem',
+      color: '#475569',
+      cursor: 'pointer',
+      fontSize: '1rem',
       fontWeight: '600',
-      marginBottom: '1rem'
+      transition: 'all 0.3s',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
     },
-    configGrid: {
+    modeButtonActive: {
+      backgroundColor: '#3b82f6',
+      color: 'white',
+      borderColor: '#3b82f6',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+    },
+    // Formulario básico
+    formContainer: {
+      backgroundColor: 'white',
+      borderRadius: '0.75rem',
+      padding: '2rem',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '2rem'
+    },
+    formGrid: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr 1fr',
-      gap: '1rem'
-    },
-    pacientePanel: {
-      backgroundColor: 'white',
-      padding: '1.5rem',
-      borderRadius: '1rem',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gap: '1.5rem',
       marginBottom: '1.5rem'
-    },
-    pacienteHeaderInfo: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '1rem'
-    },
-    pacienteTitle: {
-      color: '#1e293b',
-      fontSize: '1.25rem',
-      fontWeight: '600',
-      margin: 0
     },
     formGroup: {
-      marginBottom: '1rem'
-    },
-    formGroupRow: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '1rem',
-      marginBottom: '1rem'
+      marginBottom: '1.25rem'
     },
     label: {
       display: 'block',
       color: '#374151',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-      marginBottom: '0.5rem'
-    },
-    labelRequired: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.25rem',
-      color: '#374151',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-      marginBottom: '0.5rem'
-    },
-    requiredStar: {
-      color: '#dc2626'
+      fontSize: '14px',
+      fontWeight: '600',
+      marginBottom: '8px'
     },
     input: {
       width: '100%',
@@ -609,7 +603,8 @@ const CrearTrabajo: React.FC = () => {
       border: '1px solid #d1d5db',
       borderRadius: '0.5rem',
       fontSize: '1rem',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box' as const,
+      transition: 'all 0.2s'
     },
     select: {
       width: '100%',
@@ -620,1020 +615,1552 @@ const CrearTrabajo: React.FC = () => {
       backgroundColor: 'white',
       cursor: 'pointer'
     },
-    textarea: {
-      width: '100%',
-      padding: '0.75rem 1rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '0.5rem',
-      fontSize: '1rem',
-      minHeight: '80px',
-      resize: 'vertical',
-      fontFamily: 'inherit'
-    },
-    button: {
-      backgroundColor: '#3b82f6',
-      color: 'white',
-      padding: '0.5rem 1rem',
-      border: 'none',
-      borderRadius: '0.5rem',
-      cursor: 'pointer',
-      fontWeight: '600',
-      fontSize: '0.75rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.25rem'
-    },
-    buttonSecondary: {
-      backgroundColor: '#6b7280',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      border: 'none',
-      borderRadius: '0.5rem',
-      cursor: 'pointer',
-      fontWeight: '600',
-      fontSize: '0.875rem'
-    },
-    buttonSuccess: {
-      backgroundColor: '#10b981',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      border: 'none',
-      borderRadius: '0.5rem',
-      cursor: 'pointer',
-      fontWeight: '600'
-    },
-    buttonWarning: {
-      backgroundColor: '#f59e0b',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      border: 'none',
-      borderRadius: '0.5rem',
-      cursor: 'pointer',
-      fontWeight: '600'
-    },
-    buttonDanger: {
-      backgroundColor: '#dc2626',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      border: 'none',
-      borderRadius: '0.5rem',
-      cursor: 'pointer',
-      fontWeight: '600'
-    },
-    buttonDisabled: {
-      backgroundColor: '#9ca3af',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      border: 'none',
-      borderRadius: '0.5rem',
-      cursor: 'not-allowed',
-      fontWeight: '600',
-      fontSize: '0.875rem'
-    },
-    serviciosPanel: {
-      backgroundColor: 'white',
-      padding: '1.5rem',
-      borderRadius: '1rem',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      marginBottom: '1.5rem'
-    },
+    // Buscador de servicios
     searchContainer: {
-      marginBottom: '1rem'
+      marginBottom: '1.5rem',
+      position: 'relative' as const
     },
     searchInput: {
       width: '100%',
-      padding: '0.75rem 1rem 0.75rem 3rem',
-      border: '2px solid #e5e7eb',
-      borderRadius: '0.5rem',
+      padding: '1rem 1.5rem',
+      paddingLeft: '3rem',
+      border: '1px solid #cbd5e1',
+      borderRadius: '0.75rem',
       fontSize: '1rem',
-      backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\' width=\'20\' height=\'20\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\' /%3E%3C/svg%3E")',
-      backgroundRepeat: 'no-repeat',
-      backgroundPosition: '1rem center',
-      backgroundSize: '20px 20px'
-    },
-    categoriaFilters: {
-      display: 'flex',
-      gap: '0.5rem',
-      marginBottom: '1rem',
-      flexWrap: 'wrap'
-    },
-    categoriaButton: {
-      padding: '0.5rem 1rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '9999px',
+      boxSizing: 'border-box' as const,
       backgroundColor: 'white',
-      color: '#374151',
-      cursor: 'pointer',
-      fontSize: '0.875rem',
-      fontWeight: '500',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
       transition: 'all 0.2s'
     },
-    categoriaButtonActive: {
+    searchIcon: {
+      position: 'absolute' as const,
+      left: '1rem',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: '#64748b',
+      fontSize: '1.25rem'
+    },
+    // Filtros de categoría
+    filtersContainer: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '0.75rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '2rem'
+    },
+    filters: {
+      display: 'flex',
+      gap: '0.5rem',
+      flexWrap: 'wrap' as const
+    },
+    filterButton: {
+      padding: '0.5rem 1rem',
+      border: '1px solid #cbd5e1',
+      borderRadius: '0.5rem',
+      cursor: 'pointer',
+      backgroundColor: 'white',
+      color: '#475569',
+      transition: 'all 0.2s ease',
+      fontSize: '14px',
+      fontWeight: '500',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem'
+    },
+    filterButtonActive: {
       backgroundColor: '#3b82f6',
       color: 'white',
       borderColor: '#3b82f6'
     },
+    // Servicios Grid
     serviciosGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-      gap: '1rem',
-      marginBottom: '1rem'
+      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+      gap: '1.5rem',
+      marginBottom: '2rem'
     },
     servicioCard: {
-      border: '2px solid #e5e7eb',
-      borderRadius: '0.75rem',
-      padding: '1rem',
       backgroundColor: 'white',
-      transition: 'all 0.2s',
-      height: '100%'
-    },
-    servicioCardHover: {
-      borderColor: '#3b82f6',
-      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)'
-    },
-    servicioNombre: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      color: '#1e293b',
-      margin: '0 0 0.5rem 0',
-      minHeight: '2.5rem'
-    },
-    servicioPrecio: {
-      fontSize: '1rem',
-      fontWeight: '700',
-      color: '#059669',
-      margin: '0.5rem 0'
-    },
-    servicioCategoria: {
-      fontSize: '0.75rem',
-      color: '#6b7280',
-      backgroundColor: '#f3f4f6',
-      padding: '0.25rem 0.5rem',
-      borderRadius: '9999px',
-      display: 'inline-block'
-    },
-    servicioButtons: {
-      display: 'flex',
-      gap: '0.5rem',
-      marginTop: '1rem'
-    },
-    serviciosPacienteContainer: {
-      backgroundColor: '#f8fafc',
+      padding: '1.5rem',
       borderRadius: '0.75rem',
-      padding: '1.5rem',
-      marginTop: '1rem'
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      transition: 'transform 0.2s, box-shadow 0.2s'
     },
-    servicioItem: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '1rem',
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-      marginBottom: '0.75rem',
-      border: '1px solid #e5e7eb'
-    },
-    servicioItemInfo: {
-      flex: 1
-    },
-    servicioItemNombre: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      color: '#1e293b',
-      marginBottom: '0.25rem'
-    },
-    servicioItemDetalles: {
-      fontSize: '0.75rem',
-      color: '#64748b',
-      display: 'flex',
-      gap: '1rem',
-      alignItems: 'center'
-    },
-    servicioItemPrecio: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      color: '#059669'
-    },
-    listaPacientesContainer: {
-      backgroundColor: '#f8fafc',
-      borderRadius: '1rem',
-      padding: '1.5rem',
-      marginTop: '1.5rem'
-    },
-    pacienteItem: {
-      backgroundColor: 'white',
-      borderRadius: '0.75rem',
-      padding: '1.5rem',
-      marginBottom: '1rem',
-      border: '1px solid #e5e7eb',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-    },
-    pacienteHeader: {
+    cardHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
       marginBottom: '1rem'
     },
-    pacienteNombre: {
-      fontSize: '1rem',
-      fontWeight: '600',
+    servicioNombre: {
       color: '#1e293b',
-      margin: 0
+      fontSize: '16px',
+      fontWeight: '600',
+      margin: '0',
+      lineHeight: '1.4'
     },
-    pacienteRun: {
-      fontSize: '0.875rem',
-      color: '#64748b',
-      marginTop: '0.25rem'
+    categoriaBadge: {
+      padding: '4px 12px',
+      borderRadius: '20px',
+      fontSize: '12px',
+      fontWeight: '500',
+      backgroundColor: '#f1f5f9',
+      color: '#475569'
     },
-    serviciosList: {
-      marginTop: '1rem'
+    precio: {
+      color: '#059669',
+      fontSize: '20px',
+      fontWeight: '700',
+      margin: '1rem 0',
+      fontFamily: "'Courier New', monospace"
     },
-    servicioResumenItem: {
+    controlesServicio: {
       display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '0.75rem',
-      backgroundColor: '#f9fafb',
-      borderRadius: '0.5rem',
-      marginBottom: '0.5rem'
-    },
-    totalPaciente: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      paddingTop: '1rem',
+      gap: '0.75rem',
       marginTop: '1rem',
-      borderTop: '1px solid #e5e7eb',
+      alignItems: 'center'
+    },
+    inputCantidad: {
+      width: '80px',
+      padding: '0.5rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      textAlign: 'center' as const,
+      fontSize: '14px'
+    },
+    inputPieza: {
+      width: '100px',
+      padding: '0.5rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '0.375rem',
+      fontSize: '14px'
+    },
+    // Botón agregar
+    addButton: {
+      backgroundColor: '#3b82f6',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      border: 'none',
+      borderRadius: '0.375rem',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '600',
+      transition: 'background-color 0.2s',
+      flex: 1
+    },
+    // Botón limpiar
+    clearButton: {
+      backgroundColor: '#ef4444',
+      color: 'white',
+      padding: '0.75rem 1.5rem',
+      border: 'none',
+      borderRadius: '0.5rem',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '600',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      transition: 'background-color 0.2s'
+    },
+    // Modo detallado - 3 columnas
+    detailedContainer: {
+      backgroundColor: 'white',
+      borderRadius: '0.75rem',
+      padding: '2rem',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '2rem',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+      gap: '2rem'
+    },
+    column: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: '1.5rem'
+    },
+    columnTitle: {
+      fontSize: '1.25rem',
+      fontWeight: '700',
+      color: '#1e293b',
+      paddingBottom: '0.75rem',
+      borderBottom: '2px solid #3b82f6',
+      marginBottom: '1rem'
+    },
+    // Columna izquierda: Tipos de trabajos
+    categoryCard: {
+      border: '1px solid #e2e8f0',
+      borderRadius: '0.5rem',
+      padding: '1.25rem',
+      backgroundColor: '#f8fafc'
+    },
+    categoryHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      marginBottom: '1rem'
+    },
+    categoryIcon: {
+      fontSize: '1.5rem',
+      width: '40px',
+      height: '40px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '8px',
+      backgroundColor: '#3b82f6',
+      color: 'white'
+    },
+    categoryTitle: {
+      fontSize: '1rem',
       fontWeight: '600',
       color: '#1e293b'
     },
-    totalGeneralContainer: {
-      backgroundColor: '#1e293b',
-      color: 'white',
-      padding: '1.5rem',
-      borderRadius: '1rem',
-      marginTop: '1.5rem',
+    materialItem: {
       display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    totalGeneralLabel: {
-      fontSize: '1.125rem',
-      fontWeight: '600'
-    },
-    totalGeneralMonto: {
-      fontSize: '1.5rem',
-      fontWeight: '700'
-    },
-    actionsContainer: {
-      display: 'flex',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: '1.5rem',
-      paddingTop: '1.5rem',
-      borderTop: '1px solid #e5e7eb'
+      gap: '0.75rem',
+      padding: '0.5rem 0',
+      cursor: 'pointer'
     },
-    loadingContainer: {
+    materialCheckbox: {
+      width: '20px',
+      height: '20px',
+      borderRadius: '4px',
+      border: '2px solid #cbd5e0',
       display: 'flex',
-      justifyContent: 'center',
       alignItems: 'center',
-      minHeight: '200px',
-      flexDirection: 'column',
+      justifyContent: 'center'
+    },
+    materialCheckboxChecked: {
+      backgroundColor: '#10b981',
+      borderColor: '#10b981',
+      color: 'white'
+    },
+    materialName: {
+      fontSize: '14px',
+      color: '#4a5568'
+    },
+    // Columna central: Material a utilizar
+    materialTypeGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
       gap: '1rem'
     },
-    loadingSpinner: {
-      width: '40px',
-      height: '40px',
-      border: '4px solid #e2e8f0',
-      borderTopColor: '#3b82f6',
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite'
+    materialTypeCard: {
+      border: '2px solid #e2e8f0',
+      borderRadius: '0.5rem',
+      padding: '1rem',
+      textAlign: 'center' as const,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      backgroundColor: 'white'
     },
-    emptyState: {
-      textAlign: 'center',
-      padding: '3rem',
-      color: '#64748b',
-      backgroundColor: '#f9fafb',
-      borderRadius: '0.75rem'
+    materialTypeCardSelected: {
+      borderColor: '#3b82f6',
+      backgroundColor: '#eff6ff',
+      transform: 'scale(1.05)',
+      boxShadow: '0 4px 6px rgba(59, 130, 246, 0.3)'
     },
-    counterBadge: {
-      backgroundColor: '#3b82f6',
-      color: 'white',
-      borderRadius: '9999px',
-      padding: '0.25rem 0.75rem',
-      fontSize: '0.75rem',
+    materialTypeName: {
+      fontSize: '14px',
       fontWeight: '600',
-      marginLeft: '0.5rem'
+      color: '#1e293b',
+      marginBottom: '0.5rem'
     },
-    chip: {
-      backgroundColor: '#e0f2fe',
-      color: '#0369a1',
-      padding: '0.25rem 0.75rem',
-      borderRadius: '9999px',
-      fontSize: '0.75rem',
-      fontWeight: '500',
-      display: 'inline-block'
+    materialTypePrice: {
+      fontSize: '12px',
+      color: '#059669',
+      fontWeight: '600'
     },
-    pacienteActions: {
+    // Columna derecha: Opciones y parámetros
+    optionGroup: {
+      border: '1px solid #e2e8f0',
+      borderRadius: '0.5rem',
+      padding: '1.25rem',
+      marginBottom: '1rem',
+      backgroundColor: '#f8fafc'
+    },
+    optionTitle: {
+      fontSize: '1rem',
+      fontWeight: '600',
+      color: '#4a5568',
+      marginBottom: '1rem',
       display: 'flex',
-      gap: '0.5rem',
-      marginTop: '1rem'
-    },
-    // Estilos para el modal de odontograma
-    modalOverlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 1000,
-      padding: '20px'
+      gap: '0.5rem'
     },
-    modalContent: {
-      backgroundColor: 'white',
-      borderRadius: '1rem',
-      padding: '2rem',
-      maxWidth: '800px',
-      width: '100%',
-      maxHeight: '90vh',
-      overflowY: 'auto',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    checkboxLabel: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      cursor: 'pointer',
+      padding: '0.5rem 0'
     },
-    modalHeader: {
+    customCheckbox: {
+      width: '20px',
+      height: '20px',
+      borderRadius: '4px',
+      border: '2px solid #cbd5e0',
+      position: 'relative' as const,
+      transition: 'all 0.2s'
+    },
+    customCheckboxChecked: {
+      backgroundColor: '#10b981',
+      borderColor: '#10b981'
+    },
+    // Sliders
+    sliderContainer: {
+      padding: '1rem 0'
+    },
+    sliderLabel: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '1.5rem'
+      marginBottom: '0.5rem',
+      fontSize: '14px'
     },
-    modalTitle: {
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      color: '#1e293b',
-      margin: 0
+    sliderValue: {
+      color: '#3b82f6',
+      fontWeight: '600'
     },
-    closeButton: {
-      backgroundColor: 'transparent',
-      border: 'none',
-      fontSize: '1.5rem',
-      cursor: 'pointer',
-      color: '#64748b'
+    slider: {
+      width: '100%',
+      height: '6px',
+      borderRadius: '3px',
+      backgroundColor: '#e2e8f0',
+      outline: 'none',
+      WebkitAppearance: 'none' as const
     },
-    odontogramaContainer: {
-      backgroundColor: '#f8fafc',
-      padding: '1.5rem',
-      borderRadius: '1rem',
-      marginTop: '1rem',
-      marginBottom: '1rem'
-    },
-    odontogramaGrid: {
+    // Selector de color
+    colorGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(8, 1fr)',
-      gap: '0.5rem',
-      marginBottom: '1rem'
-    },
-    piezaButton: {
-      padding: '0.75rem 0.5rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '0.375rem',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-      fontSize: '0.75rem',
-      textAlign: 'center',
-      transition: 'all 0.2s',
-      fontWeight: '500'
-    },
-    piezaButtonSelected: {
-      backgroundColor: '#3b82f6',
-      color: 'white',
-      borderColor: '#3b82f6'
-    },
-    piezasSeleccionadasContainer: {
-      backgroundColor: '#eff6ff',
-      padding: '1rem',
-      borderRadius: '0.5rem',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: '0.75rem',
       marginTop: '1rem'
     },
-    piezasList: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '0.5rem',
-      marginTop: '0.5rem'
-    },
-    piezaTag: {
-      backgroundColor: '#3b82f6',
-      color: 'white',
-      padding: '0.25rem 0.75rem',
-      borderRadius: '9999px',
-      fontSize: '0.75rem',
+    colorItem: {
+      width: '50px',
+      height: '50px',
+      borderRadius: '8px',
+      border: '3px solid transparent',
+      cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
-      gap: '0.25rem'
-    },
-    removePiezaButton: {
-      backgroundColor: 'transparent',
-      border: 'none',
+      justifyContent: 'center',
+      fontWeight: '600',
+      fontSize: '12px',
       color: 'white',
-      cursor: 'pointer',
-      fontSize: '0.75rem',
-      padding: 0
+      textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+      transition: 'all 0.2s'
     },
-    // Botón flotante de guardar
-    floatingSaveButton: {
-      position: 'fixed',
-      bottom: '30px',
-      right: '30px',
-      zIndex: 999
+    colorItemSelected: {
+      borderColor: '#3b82f6',
+      transform: 'scale(1.1)',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+    },
+    // Configuración de diente
+    toothConfig: {
+      backgroundColor: '#f8fafc',
+      borderRadius: '0.5rem',
+      padding: '1.5rem',
+      marginBottom: '1rem'
+    },
+    // Botón para crear trabajo detallado
+    createButton: {
+      marginTop: '2rem',
+      textAlign: 'center' as const
+    },
+    button: {
+      backgroundColor: '#10b981',
+      color: 'white',
+      padding: '1rem 2rem',
+      border: 'none',
+      borderRadius: '0.5rem',
+      fontSize: '1rem',
+      fontWeight: '600',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s'
+    },
+    // Lista de trabajos agregados
+    trabajosContainer: {
+      backgroundColor: 'white',
+      borderRadius: '0.75rem',
+      padding: '2rem',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      marginTop: '2rem'
+    },
+    trabajoItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      padding: '1.5rem',
+      borderBottom: '1px solid #e2e8f0',
+      backgroundColor: '#f8fafc',
+      borderRadius: '0.5rem',
+      marginBottom: '1rem',
+      transition: 'all 0.2s'
+    },
+    totalContainer: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      padding: '1.5rem',
+      borderTop: '2px solid #3b82f6',
+      backgroundColor: '#f1f5f9',
+      borderRadius: '0 0 0.75rem 0.75rem',
+      marginTop: '1rem'
+    },
+    totalText: {
+      fontSize: '1.25rem',
+      fontWeight: '700',
+      color: '#1e293b'
+    },
+    totalAmount: {
+      fontSize: '1.25rem',
+      fontWeight: '800',
+      color: '#059669'
+    },
+    // Estados vacíos
+    loadingContainer: {
+      textAlign: 'center' as const,
+      padding: '3rem',
+      backgroundColor: 'white',
+      borderRadius: '0.75rem',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      marginBottom: '2rem'
+    },
+    loadingText: {
+      color: '#64748b',
+      fontSize: '1.125rem',
+      marginTop: '1rem'
+    },
+    emptyState: {
+      textAlign: 'center' as const,
+      padding: '3rem',
+      backgroundColor: 'white',
+      borderRadius: '0.75rem',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+      border: '1px solid #e2e8f0',
+      color: '#64748b'
+    },
+    resultadosInfo: {
+      marginTop: '1rem',
+      marginBottom: '1rem',
+      fontSize: '14px',
+      color: '#64748b'
     }
   };
+
+  // SISTEMA DE AUTOGUARDADO
+  const STORAGE_KEY = 'dentalflow_crearTrabajo_estado';
+
+  const guardarEstado = useCallback(() => {
+    const estado = {
+      clinicaSeleccionada,
+      dentistaSeleccionado,
+      laboratoristaSeleccionado,
+      nombrePaciente,
+      rutPaciente,
+      trabajosAgregados,
+      cantidades,
+      piezasDentales,
+      modoDetallado,
+      categoriaSeleccionada,
+      configDetallada,
+      ultimaActualizacion: new Date().toISOString(),
+      version: '1.0'
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+    } catch (error) {
+      console.error('Error al guardar en localStorage:', error);
+    }
+  }, [
+    clinicaSeleccionada,
+    dentistaSeleccionado,
+    laboratoristaSeleccionado,
+    nombrePaciente,
+    rutPaciente,
+    trabajosAgregados,
+    cantidades,
+    piezasDentales,
+    modoDetallado,
+    categoriaSeleccionada,
+    configDetallada
+  ]);
+
+  // Función para cargar el estado guardado
+  const cargarEstadoGuardado = () => {
+    try {
+      const estadoGuardado = localStorage.getItem(STORAGE_KEY);
+      if (estadoGuardado) {
+        const estado = JSON.parse(estadoGuardado);
+        
+        // Verificar si el estado no está muy viejo (más de 24 horas)
+        const ultimaActualizacion = new Date(estado.ultimaActualizacion);
+        const ahora = new Date();
+        const horasDiferencia = (ahora.getTime() - ultimaActualizacion.getTime()) / (1000 * 60 * 60);
+        
+        if (horasDiferencia > 24) {
+          // Estado muy viejo, limpiar
+          localStorage.removeItem(STORAGE_KEY);
+          return false;
+        }
+
+        // Preguntar al usuario si quiere recuperar
+        const confirmar = window.confirm(
+          idioma === 'es' 
+            ? '¿Deseas recuperar el trabajo en progreso que tenías guardado?'
+            : 'Do you want to recover your saved work in progress?'
+        );
+
+        if (confirmar) {
+          setClinicaSeleccionada(estado.clinicaSeleccionada || '');
+          setDentistaSeleccionado(estado.dentistaSeleccionado || '');
+          setLaboratoristaSeleccionado(estado.laboratoristaSeleccionado || '');
+          setNombrePaciente(estado.nombrePaciente || '');
+          setRutPaciente(estado.rutPaciente || '');
+          setTrabajosAgregados(estado.trabajosAgregados || []);
+          setCantidades(estado.cantidades || {});
+          setPiezasDentales(estado.piezasDentales || {});
+          setModoDetallado(estado.modoDetallado || false);
+          setCategoriaSeleccionada(estado.categoriaSeleccionada || 'todos');
+          setConfigDetallada(estado.configDetallada || {
+            tooth: '',
+            materialConfig: 'Default',
+            baseMaterial: 'Solar Laser / 30 Pinz',
+            implantBased: false,
+            customAbstinent: '',
+            additionalScans: false,
+            minimalThickness: 0.5,
+            gapWidthCement: 0.1,
+            orsStockAbstinent: false,
+            selectedMaterials: [],
+            materialType: 'Zirconia',
+            toothColor: 'A2'
+          });
+
+          console.log('✅ Estado recuperado de localStorage');
+          return true;
+        } else {
+          // Si el usuario no quiere recuperar, limpiar el estado guardado
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar el estado guardado:', error);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    return false;
+  };
+
+  // Función para limpiar el estado guardado
+  const limpiarEstadoGuardado = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('🧹 Estado eliminado de localStorage');
+  };
+
+  // Efecto para cargar el estado al inicio
+  useEffect(() => {
+    if (!hasLoadedFromStorage) {
+      const cargado = cargarEstadoGuardado();
+      setHasLoadedFromStorage(true);
+      
+      if (cargado) {
+        // Mostrar mensaje de éxito
+        setTimeout(() => {
+          alert(idioma === 'es' 
+            ? '¡Trabajo recuperado exitosamente! Continúa donde lo dejaste.'
+            : 'Work recovered successfully! Continue where you left off.'
+          );
+        }, 500);
+      }
+    }
+  }, [hasLoadedFromStorage, idioma]);
+
+  // Efecto para autoguardar con debounce
+  useEffect(() => {
+    if (!hasLoadedFromStorage) return; // No guardar antes de cargar
+
+    // Limpiar timeout anterior
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+
+    // Establecer nuevo timeout para guardar después de 2 segundos
+    autosaveTimeoutRef.current = setTimeout(() => {
+      guardarEstado();
+    }, 2000);
+
+    // Limpiar al desmontar
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, [
+    clinicaSeleccionada,
+    dentistaSeleccionado,
+    laboratoristaSeleccionado,
+    nombrePaciente,
+    rutPaciente,
+    trabajosAgregados,
+    cantidades,
+    piezasDentales,
+    modoDetallado,
+    categoriaSeleccionada,
+    configDetallada,
+    hasLoadedFromStorage,
+    guardarEstado
+  ]);
+
+  // También guardar cuando el usuario cierra la pestaña
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      guardarEstado();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [guardarEstado]);
+
+  // ==================== FIN SISTEMA DE AUTOGUARDADO ====================
+
+  const toggleMaterial = (material: string) => {
+    const nuevosMateriales = configDetallada.selectedMaterials.includes(material)
+      ? configDetallada.selectedMaterials.filter(m => m !== material)
+      : [...configDetallada.selectedMaterials, material];
+    
+    setConfigDetallada({
+      ...configDetallada,
+      selectedMaterials: nuevosMateriales
+    });
+  };
+
+  const crearTrabajoDetallado = () => {
+    if (!nombrePaciente || !configDetallada.tooth) {
+      alert(idioma === 'es' ? 'Por favor completa el nombre del paciente y el diente' : 'Please complete patient name and tooth');
+      return;
+    }
+
+    if (configDetallada.selectedMaterials.length === 0) {
+      alert(idioma === 'es' ? 'Por favor selecciona al menos un material' : 'Please select at least one material');
+      return;
+    }
+
+    const preciosMaterial: Record<string, number> = {
+      'Zirconia': 150000, 'Zirconia Multilayer': 180000, 'Zirconia Translúcido': 200000,
+      'Acrílico/PMMA': 80000, 'Composite': 100000, 'Metal HP': 120000, 'Titanio': 250000,
+      'Metal HP (Láser)': 140000, 'Titanio (Láser)': 280000, '30 Print': 90000
+    };
+    
+    let precioBase = preciosMaterial[configDetallada.materialType] || 150000;
+    
+    if (configDetallada.implantBased) precioBase += 50000;
+    if (configDetallada.additionalScans) precioBase += 30000;
+    if (configDetallada.minimalThickness < 0.3) precioBase += 40000;
+    if (configDetallada.gapWidthCement < 0.05) precioBase += 30000;
+    if (configDetallada.orsStockAbstinent) precioBase += 25000;
+    precioBase += configDetallada.selectedMaterials.length * 20000;
+
+    const observaciones = `
+Diente: ${configDetallada.tooth}
+Configuración: ${configDetallada.materialConfig}
+${configDetallada.implantBased ? '✓ Basado en implante' : '✗ No basado en implante'}
+${configDetallada.customAbstinent ? `Abstinencia Personalizada: ${configDetallada.customAbstinent}` : ''}
+${configDetallada.additionalScans ? '✓ Escaneos adicionales' : ''}
+Espesor mínimo: ${configDetallada.minimalThickness}mm
+Ancho de cemento: ${configDetallada.gapWidthCement}mm
+${configDetallada.orsStockAbstinent ? '✓ Abstinencia de stock Ors' : ''}
+Tipo de material: ${configDetallada.materialType}
+Materiales seleccionados: ${configDetallada.selectedMaterials.join(', ')}
+Color del diente: ${configDetallada.toothColor}
+    `.trim();
+
+    const trabajoDetallado: ServicioSupabase = {
+      id: `detallado-${Date.now()}`,
+      nombre: `Prótesis Detallada - ${configDetallada.tooth}`,
+      categoria: 'fija',
+      precio_base: precioBase,
+      activo: true,
+      usuario_id: '',
+      creado_en: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+
+    const trabajo: TrabajoAgregado = {
+      id: Date.now().toString() + Math.random(),
+      paciente: nombrePaciente,
+      rutPaciente: rutPaciente,
+      servicio: trabajoDetallado,
+      cantidad: 1,
+      piezaDental: configDetallada.tooth,
+      precioUnitario: precioBase,
+      observaciones
+    };
+
+    setTrabajosAgregados([...trabajosAgregados, trabajo]);
+    
+    setConfigDetallada({
+      tooth: '',
+      materialConfig: 'Default',
+      baseMaterial: 'Solar Laser / 30 Pinz',
+      implantBased: false,
+      customAbstinent: '',
+      additionalScans: false,
+      minimalThickness: 0.5,
+      gapWidthCement: 0.1,
+      orsStockAbstinent: false,
+      selectedMaterials: [],
+      materialType: 'Zirconia',
+      toothColor: 'A2'
+    });
+    
+    setModoDetallado(false);
+    
+    alert('¡Trabajo detallado agregado exitosamente!');
+  };
+
+  const agregarTrabajoSimple = (servicio: ServicioSupabase) => {
+    if (!nombrePaciente) {
+      alert('Por favor ingresa el nombre del paciente');
+      return;
+    }
+
+    const cantidad = cantidades[servicio.id] || 1;
+    const piezaDental = piezasDentales[servicio.id] || '';
+
+    const trabajo: TrabajoAgregado = {
+      id: Date.now().toString() + Math.random(),
+      paciente: nombrePaciente,
+      rutPaciente: rutPaciente,
+      servicio,
+      cantidad,
+      piezaDental,
+      precioUnitario: servicio.precio_base
+    };
+
+    setTrabajosAgregados([...trabajosAgregados, trabajo]);
+    setCantidades(prev => ({ ...prev, [servicio.id]: 1 }));
+    setPiezasDentales(prev => ({ ...prev, [servicio.id]: '' }));
+  };
+
+  const eliminarTrabajo = (id: string) => {
+    setTrabajosAgregados(trabajosAgregados.filter(t => t.id !== id));
+  };
+
+  const calcularTotal = () => {
+    return trabajosAgregados.reduce((total, trabajo) => 
+      total + (trabajo.precioUnitario * trabajo.cantidad), 0
+    );
+  };
+
+  const finalizarTrabajo = async () => {
+    if (!clinicaSeleccionada || !dentistaSeleccionado) {
+      alert('Por favor selecciona una clínica y dentista');
+      return;
+    }
+
+    if (trabajosAgregados.length === 0) {
+      alert('Por favor agrega al menos un trabajo');
+      return;
+    }
+
+    try {
+      // Obtener usuario actual para obtener su ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        alert('No hay usuario autenticado');
+        return;
+      }
+
+      // Crear trabajo en Supabase
+      const { data: trabajoInsertado, error: errorTrabajo } = await supabase
+        .from('trabajos')
+        .insert({
+          clinica_id: clinicaSeleccionada,
+          dentista_id: dentistaSeleccionado,
+          laboratorista_id: laboratoristaSeleccionado || null,
+          paciente: nombrePaciente,
+          rut_paciente: rutPaciente || null,
+          fecha_recibido: new Date().toISOString().split('T')[0],
+          fecha_entrega: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          estado: 'pendiente',
+          precio_total: calcularTotal(),
+          observaciones: trabajosAgregados.map(t => 
+            t.observaciones || (t.piezaDental ? `${t.servicio.nombre} - ${t.piezaDental}` : t.servicio.nombre)
+          ).join(' | '),
+          usuario_id: user.id
+        })
+        .select()
+        .single();
+
+      if (errorTrabajo) {
+        console.error('Error al guardar trabajo en Supabase:', errorTrabajo);
+        throw errorTrabajo;
+      }
+
+      // Guardar los servicios del trabajo
+      const trabajoServicios = trabajosAgregados.flatMap(trabajo => 
+        Array.from({ length: trabajo.cantidad }, () => ({
+          trabajo_id: trabajoInsertado.id,
+          servicio_id: trabajo.servicio.id,
+          precio_unitario: trabajo.precioUnitario,
+          pieza_dental: trabajo.piezaDental || null,
+          observaciones: trabajo.observaciones || null,
+          usuario_id: user.id
+        }))
+      );
+
+      const { error: errorServicios } = await supabase
+        .from('trabajo_servicios')
+        .insert(trabajoServicios);
+
+      if (errorServicios) {
+        console.error('Error al guardar servicios del trabajo:', errorServicios);
+        throw errorServicios;
+      }
+
+      // También agregar al array local para consistencia
+      const trabajoCompleto: TrabajoConRut = {
+        id: trabajoInsertado.id,
+        clinicaId: clinicaSeleccionada,
+        dentistaId: dentistaSeleccionado,
+        laboratoristaId: laboratoristaSeleccionado || undefined,
+        paciente: nombrePaciente,
+        rutPaciente: rutPaciente || undefined,
+        servicios: trabajosAgregados.map(trabajo => ({
+          servicioId: trabajo.servicio.id,
+          cantidad: trabajo.cantidad,
+          precioUnitario: trabajo.precioUnitario
+        })),
+        fechaRecibido: new Date().toISOString().split('T')[0],
+        fechaEntrega: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estado: 'pendiente',
+        precioTotal: calcularTotal(),
+        observaciones: trabajosAgregados.map(t => 
+          t.observaciones || (t.piezaDental ? `${t.servicio.nombre} - ${t.piezaDental}` : t.servicio.nombre)
+        ).join(' | '),
+        usuarioId: user.id
+      };
+
+      trabajos.push(trabajoCompleto as Trabajo);
+      
+      alert(`¡Trabajo creado exitosamente!\nPaciente: ${nombrePaciente}\nTotal: ${formatearPrecioCLP(calcularTotal())}\nServicios: ${trabajosAgregados.length}`);
+      
+      // Limpiar el estado guardado
+      limpiarEstadoGuardado();
+      
+      // Limpiar estados
+      setTrabajosAgregados([]);
+      setNombrePaciente('');
+      setRutPaciente('');
+      setLaboratoristaSeleccionado('');
+      setCantidades({});
+      setPiezasDentales({});
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al guardar el trabajo. Por favor intenta nuevamente.');
+    }
+  };
+
+  const actualizarCantidad = (servicioId: string, cantidad: number) => {
+    if (cantidad < 1) cantidad = 1;
+    setCantidades(prev => ({ ...prev, [servicioId]: cantidad }));
+  };
+
+  const actualizarPiezaDental = (servicioId: string, pieza: string) => {
+    setPiezasDentales(prev => ({ ...prev, [servicioId]: pieza }));
+  };
+
+  const puedeFinalizar = clinicaSeleccionada && dentistaSeleccionado && trabajosAgregados.length > 0;
+
+  const limpiarTodo = () => {
+    if (window.confirm('¿Estás seguro de que quieres limpiar todo el trabajo en progreso?')) {
+      limpiarEstadoGuardado();
+      setClinicaSeleccionada('');
+      setDentistaSeleccionado('');
+      setLaboratoristaSeleccionado('');
+      setNombrePaciente('');
+      setRutPaciente('');
+      setTrabajosAgregados([]);
+      setCantidades({});
+      setPiezasDentales({});
+      setTerminoBusqueda('');
+      setModoDetallado(false);
+      setConfigDetallada({
+        tooth: '',
+        materialConfig: 'Default',
+        baseMaterial: 'Solar Laser / 30 Pinz',
+        implantBased: false,
+        customAbstinent: '',
+        additionalScans: false,
+        minimalThickness: 0.5,
+        gapWidthCement: 0.1,
+        orsStockAbstinent: false,
+        selectedMaterials: [],
+        materialType: 'Zirconia',
+        toothColor: 'A2'
+      });
+      
+      alert('Todo limpiado correctamente');
+    }
+  };
+
+  const renderModoDetallado = () => (
+    <div style={styles.detailedContainer}>
+      {/* Columna izquierda: Tipos de trabajos */}
+      <div style={styles.column}>
+        <h3 style={styles.columnTitle}>{t.tiposTrabajos}</h3>
+        
+        {materialCategories.map((category, index) => (
+          <div key={index} style={styles.categoryCard}>
+            <div style={styles.categoryHeader}>
+              <div style={styles.categoryIcon}>{category.icon}</div>
+              <h4 style={styles.categoryTitle}>{category.category}</h4>
+            </div>
+            {category.items.map((item, itemIndex) => (
+              <div 
+                key={itemIndex} 
+                style={styles.materialItem}
+                onClick={() => toggleMaterial(item)}
+              >
+                <div style={{
+                  ...styles.materialCheckbox,
+                  ...(configDetallada.selectedMaterials.includes(item) ? styles.materialCheckboxChecked : {})
+                }}>
+                  {configDetallada.selectedMaterials.includes(item) && '✓'}
+                </div>
+                <span style={styles.materialName}>{item}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Columna central: Material a utilizar */}
+      <div style={styles.column}>
+        <h3 style={styles.columnTitle}>{t.materialUtilizar}</h3>
+        
+        <div style={styles.toothConfig}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>{t.diente}</label>
+            <input
+              type="text"
+              style={styles.input}
+              value={configDetallada.tooth}
+              onChange={(e) => setConfigDetallada({...configDetallada, tooth: e.target.value})}
+              placeholder="Ej: 15, 21, 36"
+            />
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>{t.materialConfig}</label>
+            <select 
+              style={styles.select}
+              value={configDetallada.materialConfig}
+              onChange={(e) => setConfigDetallada({...configDetallada, materialConfig: e.target.value})}
+            >
+              <option value="Default">Default</option>
+              <option value="Premium">Premium</option>
+              <option value="Economy">Economy</option>
+              <option value="Custom">Personalizado</option>
+            </select>
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>{t.materialBase}</label>
+            <div style={{ padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '6px' }}>
+              <strong>Solar Laser / 30 Pinz</strong>
+            </div>
+          </div>
+        </div>
+
+        <h4 style={styles.optionTitle}>{t.materialType}</h4>
+        <div style={styles.materialTypeGrid}>
+          {materialTypes.map((type, index) => (
+            <div 
+              key={index} 
+              style={{
+                ...styles.materialTypeCard,
+                ...(configDetallada.materialType === type ? styles.materialTypeCardSelected : {})
+              }}
+              onClick={() => setConfigDetallada({...configDetallada, materialType: type})}
+            >
+              <div style={styles.materialTypeName}>{type}</div>
+              <div style={styles.materialTypePrice}>
+                {formatearPrecioCLP(
+                  type === 'Zirconia' ? 150000 : 
+                  type === 'Titanio' ? 250000 : 
+                  type === 'Acrílico/PMMA' ? 80000 : 
+                  type.includes('Zirconia') ? 180000 : 100000
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Columna derecha: Opciones y parámetros */}
+      <div style={styles.column}>
+        <h3 style={styles.columnTitle}>{t.opcionesParametros}</h3>
+        
+        <div style={styles.optionGroup}>
+          <h4 style={styles.optionTitle}>📊 {t.optionsParams}</h4>
+          <label style={styles.checkboxLabel}>
+            <div style={{
+              ...styles.customCheckbox,
+              ...(configDetallada.implantBased ? styles.customCheckboxChecked : {})
+            }} 
+              onClick={() => setConfigDetallada({...configDetallada, implantBased: !configDetallada.implantBased})}
+            />
+            <span>{t.implantBased}</span>
+          </label>
+          
+          <div style={{ marginTop: '12px' }}>
+            <label style={styles.label}>1. {t.customAbstinent}</label>
+            <select 
+              style={styles.select}
+              value={configDetallada.customAbstinent}
+              onChange={(e) => setConfigDetallada({...configDetallada, customAbstinent: e.target.value})}
+            >
+              <option value="">Seleccionar opción</option>
+              <option value="Orsular Monaco">Orsular Monaco</option>
+              <option value="Beta de bar">Beta de bar</option>
+              <option value="Other">Otro</option>
+            </select>
+          </div>
+          
+          <label style={{...styles.checkboxLabel, marginTop: '12px'}}>
+            <div style={{
+              ...styles.customCheckbox,
+              ...(configDetallada.additionalScans ? styles.customCheckboxChecked : {})
+            }} 
+              onClick={() => setConfigDetallada({...configDetallada, additionalScans: !configDetallada.additionalScans})}
+            />
+            <span>{t.additionalScans}</span>
+          </label>
+        </div>
+
+        <div style={styles.optionGroup}>
+          <h4 style={styles.optionTitle}>📐 2. {t.preopModel}</h4>
+          <div style={styles.sliderContainer}>
+            <div style={styles.sliderLabel}>
+              <span>{t.minimalThickness}</span>
+              <span style={styles.sliderValue}>{configDetallada.minimalThickness}mm</span>
+            </div>
+            <input
+              type="range"
+              min="0.1"
+              max="2.0"
+              step="0.1"
+              value={configDetallada.minimalThickness}
+              onChange={(e) => setConfigDetallada({...configDetallada, minimalThickness: parseFloat(e.target.value)})}
+              style={styles.slider}
+            />
+          </div>
+          <div style={styles.sliderContainer}>
+            <div style={styles.sliderLabel}>
+              <span>{t.gapWidthCement}</span>
+              <span style={styles.sliderValue}>{configDetallada.gapWidthCement}mm</span>
+            </div>
+            <input
+              type="range"
+              min="0.01"
+              max="0.5"
+              step="0.01"
+              value={configDetallada.gapWidthCement}
+              onChange={(e) => setConfigDetallada({...configDetallada, gapWidthCement: parseFloat(e.target.value)})}
+              style={styles.slider}
+            />
+          </div>
+        </div>
+
+        <div style={styles.optionGroup}>
+          <h4 style={styles.optionTitle}>🔩 3. {t.screwRelated}</h4>
+          <label style={styles.checkboxLabel}>
+            <div style={{
+              ...styles.customCheckbox,
+              ...(configDetallada.orsStockAbstinent ? styles.customCheckboxChecked : {})
+            }} 
+              onClick={() => setConfigDetallada({...configDetallada, orsStockAbstinent: !configDetallada.orsStockAbstinent})}
+            />
+            <span>{t.orsStockAbstinent}</span>
+          </label>
+        </div>
+
+        <div style={styles.optionGroup}>
+          <h4 style={styles.optionTitle}>🎨 {t.toothColor}</h4>
+          <div style={styles.colorGrid}>
+            {toothColors.map((color, index) => (
+              <div
+                key={index}
+                style={{
+                  ...styles.colorItem,
+                  backgroundColor: getToothColorHex(color),
+                  ...(configDetallada.toothColor === color ? styles.colorItemSelected : {})
+                }}
+                onClick={() => setConfigDetallada({...configDetallada, toothColor: color})}
+              >
+                {color}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={styles.createButton}>
+          <button 
+            style={styles.button}
+            onClick={crearTrabajoDetallado}
+            disabled={!configDetallada.tooth || configDetallada.selectedMaterials.length === 0}
+          >
+            {t.crearTrabajoDetallado}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Mostrar estado de carga
+  if (cargandoDatos) {
+    return (
+      <div style={styles.container}>
+        <header style={styles.header}>
+          <div style={styles.logo} onClick={onBack}>
+            <span>🦷</span>
+            DentalFlow
+          </div>
+        </header>
+        <main style={styles.mainContent}>
+          <div style={styles.loadingContainer}>
+            <div style={{ fontSize: '3rem' }}>🔄</div>
+            <div style={styles.loadingText}>{t.cargandoDatos}</div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
       {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <button 
-            style={styles.backButton} 
-            onClick={() => navigate('/dashboard')}
-          >
-            ← Volver
-          </button>
-          <h1 style={styles.title}>
-            🦷 Crear Lista de Trabajos 
-            {trabajosPacientes.length > 0 && (
-              <span style={styles.counterBadge}>
-                {trabajosPacientes.length} paciente{trabajosPacientes.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </h1>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button
-            style={puedeGuardarTodo ? styles.buttonSuccess : styles.buttonDisabled}
-            onClick={guardarTodosLosTrabajos}
-            disabled={!puedeGuardarTodo || cargando}
-          >
-            {cargando ? '🔄 Guardando...' : `💾 Guardar Lista (${trabajosPacientes.length})`}
-          </button>
-          <button
-            style={styles.buttonSecondary}
-            onClick={() => {
-              const confirmar = window.confirm('¿Estás seguro de que quieres limpiar todo el formulario? Se perderán los datos no guardados.');
-              if (confirmar) resetearTodo();
-            }}
-          >
-            🗑️ Limpiar Todo
-          </button>
-        </div>
-      </div>
-
-      {/* Panel de Configuración General */}
-      <div style={styles.configPanel}>
-        <div style={styles.configTitle}>
-          ⚙️ Configuración General
+      <header style={styles.header}>
+        <div style={styles.logo} onClick={onBack}>
+          <span>🦷</span>
+          DentalFlow
         </div>
         
-        <div style={styles.configGrid}>
-          <div style={styles.formGroup}>
-            <label style={styles.labelRequired}>
-              Clínica <span style={styles.requiredStar}>*</span>
-            </label>
-            <select 
-              style={styles.select}
-              value={clinicaSeleccionada}
-              onChange={(e) => {
-                setClinicaSeleccionada(e.target.value);
-                setDentistaSeleccionado('');
+        <div style={styles.userSection}>
+          <div style={styles.languageSelector}>
+            <button
+              style={{
+                ...styles.languageButton,
+                ...(idioma === 'es' ? styles.languageButtonActive : {})
               }}
-              required
+              onClick={() => setIdioma('es')}
             >
-              <option value="">Selecciona una clínica</option>
-              {clinicas.map(clinica => (
-                <option key={clinica.id} value={clinica.id}>
-                  {clinica.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Dentista (Opcional)</label>
-            <select 
-              style={styles.select}
-              value={dentistaSeleccionado}
-              onChange={(e) => setDentistaSeleccionado(e.target.value)}
-              disabled={!clinicaSeleccionada}
+              🇪🇸 Español
+            </button>
+            <button
+              style={{
+                ...styles.languageButton,
+                ...(idioma === 'en' ? styles.languageButtonActive : {})
+              }}
+              onClick={() => setIdioma('en')}
             >
-              <option value="">Sin especificar</option>
-              {dentistasFiltrados.map(dentista => (
-                <option key={dentista.id} value={dentista.id}>
-                  {dentista.nombre} ({dentista.especialidad})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Laboratorista (Opcional)</label>
-            <select 
-              style={styles.select}
-              value={laboratoristaSeleccionado}
-              onChange={(e) => setLaboratoristaSeleccionado(e.target.value)}
-            >
-              <option value="">Sin asignar</option>
-              {laboratoristas.map(lab => (
-                <option key={lab.id} value={lab.id}>
-                  {lab.nombre} ({lab.especialidad})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Fecha de Entrega</label>
-            <input
-              type="date"
-              style={styles.input}
-              value={fechaEntregaEstimada}
-              onChange={(e) => setFechaEntregaEstimada(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-            />
+              🇺🇸 English
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Panel del Paciente Actual */}
-      <div style={styles.pacientePanel}>
-        <div style={styles.pacienteHeaderInfo}>
-          <h2 style={styles.pacienteTitle}>
-            👤 Paciente Actual
-            {serviciosPacienteActual.length > 0 && (
-              <span style={styles.chip}>
-                {serviciosPacienteActual.length} servicio{serviciosPacienteActual.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </h2>
-        </div>
+      {/* Main Content */}
+      <main style={styles.mainContent}>
+        {/* Welcome Section */}
+        <section style={styles.welcomeSection}>
+          <h1 style={styles.welcomeTitle}>
+            {t.title}
+          </h1>
+          <p style={styles.welcomeSubtitle}>
+            Crea listas de trabajo para tus pacientes seleccionando servicios de tu catálogo.
+          </p>
+        </section>
 
-        <div style={styles.formGroupRow}>
-          <div style={styles.formGroup}>
-            <label style={styles.labelRequired}>
-              Nombre del Paciente <span style={styles.requiredStar}>*</span>
-            </label>
-            <input
-              type="text"
-              style={styles.input}
-              value={nombrePaciente}
-              onChange={(e) => setNombrePaciente(e.target.value)}
-              placeholder="Nombre completo"
-              required
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>RUN/RUT (Opcional)</label>
-            <input
-              type="text"
-              style={styles.input}
-              value={runPaciente}
-              onChange={(e) => setRunPaciente(e.target.value)}
-              placeholder="12.345.678-9"
-            />
-          </div>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Notas para este paciente (Opcional)</label>
-          <textarea
-            style={styles.textarea}
-            value={notasGenerales}
-            onChange={(e) => setNotasGenerales(e.target.value)}
-            placeholder="Notas específicas para este paciente..."
-            rows={2}
-          />
-        </div>
-
-        <div style={styles.pacienteActions}>
-          <button
-            style={styles.buttonSecondary}
-            onClick={() => {
-              setNombrePaciente('');
-              setRunPaciente('');
-              setNotasGenerales('');
-              setServiciosPacienteActual([]);
-            }}
-            disabled={!nombrePaciente && !runPaciente && serviciosPacienteActual.length === 0}
-          >
-            🔄 Limpiar Paciente
-          </button>
+        {/* Información del paciente */}
+        <div style={styles.formContainer}>
+          <h3 style={{ color: '#1e293b', marginBottom: '1.5rem', fontSize: '1.25rem' }}>
+            📋 Información del Paciente
+          </h3>
           
+          <div style={styles.formGrid}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>{t.clinica}</label>
+              <select 
+                style={styles.select}
+                value={clinicaSeleccionada}
+                onChange={(e) => {
+                  setClinicaSeleccionada(e.target.value);
+                  setDentistaSeleccionado('');
+                }}
+                required
+              >
+                <option value="">Selecciona una clínica</option>
+                {clinicas.map(clinica => (
+                  <option key={clinica.id} value={clinica.id}>
+                    {clinica.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>{t.dentista}</label>
+              <select 
+                style={styles.select}
+                value={dentistaSeleccionado}
+                onChange={(e) => setDentistaSeleccionado(e.target.value)}
+                disabled={!clinicaSeleccionada}
+                required
+              >
+                <option value="">Selecciona un dentista</option>
+                {dentistasFiltrados.map(dentista => (
+                  <option key={dentista.id} value={dentista.id}>
+                    {dentista.nombre} - {dentista.especialidad}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>{t.laboratorista}</label>
+              <select 
+                style={styles.select}
+                value={laboratoristaSeleccionado}
+                onChange={(e) => setLaboratoristaSeleccionado(e.target.value)}
+              >
+                <option value="">Sin asignar</option>
+                {laboratoristas.map(laboratorista => (
+                  <option key={laboratorista.id} value={laboratorista.id}>
+                    {laboratorista.nombre} - {laboratorista.especialidad}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={styles.formGrid}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>{t.paciente}</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={nombrePaciente}
+                onChange={(e) => setNombrePaciente(e.target.value)}
+                placeholder="Ej: Juan Pérez"
+                required
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>{t.rut}</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={rutPaciente}
+                onChange={(e) => setRutPaciente(e.target.value)}
+                placeholder="Ej: 12.345.678-9"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Selector de modo */}
+        <div style={styles.modeSelector}>
           <button
-            style={puedeAgregarPaciente ? styles.buttonWarning : styles.buttonDisabled}
-            onClick={agregarPacienteALista}
-            disabled={!puedeAgregarPaciente}
+            style={{
+              ...styles.modeButton,
+              ...(!modoDetallado ? styles.modeButtonActive : {})
+            }}
+            onClick={() => setModoDetallado(false)}
           >
-            👥 Agregar a la Lista
+            {t.modoSimple}
+          </button>
+          <button
+            style={{
+              ...styles.modeButton,
+              ...(modoDetallado ? styles.modeButtonActive : {})
+            }}
+            onClick={() => setModoDetallado(true)}
+          >
+            {t.modoDetallado}
           </button>
         </div>
-      </div>
-
-      {/* Panel de Servicios CON BOTONES DIRECTOS */}
-      <div style={styles.serviciosPanel}>
-        <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#1e293b' }}>
-          🛠️ Buscar y Seleccionar Servicios
-        </h3>
 
         {/* Buscador de servicios */}
-        <div style={styles.searchContainer}>
-          <input
-            type="text"
-            style={styles.searchInput}
-            placeholder="🔍 Buscar servicios (nombre, descripción)..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-        </div>
-
-        {/* Filtros por categoría */}
-        <div style={styles.categoriaFilters}>
-          {categorias.map(categoria => (
-            <button
-              key={categoria}
-              style={{
-                ...styles.categoriaButton,
-                ...(categoriaSeleccionada === categoria ? styles.categoriaButtonActive : {})
+        {!modoDetallado && (
+          <div style={styles.searchContainer}>
+            <div style={styles.searchIcon}>🔍</div>
+            <input
+              type="text"
+              style={styles.searchInput}
+              placeholder={t.buscarServicio}
+              value={terminoBusqueda}
+              onChange={(e) => {
+                setTerminoBusqueda(e.target.value);
+                console.log('Buscando:', e.target.value);
               }}
-              onClick={() => setCategoriaSeleccionada(categoria)}
-            >
-              {categoria === 'todos' ? 'Todos' : categoria}
-            </button>
-          ))}
-        </div>
-
-        {/* Grid de servicios CON BOTONES INCLUIDOS */}
-        {cargando ? (
-          <div style={styles.loadingContainer}>
-            <div style={styles.loadingSpinner}></div>
-            <div>Cargando servicios...</div>
-          </div>
-        ) : (
-          <div style={styles.serviciosGrid}>
-            {serviciosFiltrados.map(servicio => (
-              <div
-                key={servicio.id}
-                style={{
-                  ...styles.servicioCard,
-                  ...(hoveredServicio === servicio.id ? styles.servicioCardHover : {})
-                }}
-                onMouseEnter={() => setHoveredServicio(servicio.id)}
-                onMouseLeave={() => setHoveredServicio(null)}
-              >
-                <h4 style={styles.servicioNombre}>{servicio.nombre}</h4>
-                <div style={styles.servicioPrecio}>${servicio.precio_base}</div>
-                {servicio.descripcion && (
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
-                    {servicio.descripcion.substring(0, 80)}...
-                  </p>
-                )}
-                <div style={styles.servicioCategoria}>{servicio.categoria}</div>
-                
-                {/* BOTONES DIRECTOS EN CADA SERVICIO */}
-                <div style={styles.servicioButtons}>
-                  <button
-                    style={{
-                      ...styles.button,
-                      backgroundColor: '#10b981',
-                      flex: 1
-                    }}
-                    onClick={() => agregarServicioSinPiezas(servicio)}
-                    disabled={!nombrePaciente}
-                    title="Agregar sin especificar piezas dentales"
-                  >
-                    ➕ Agregar
-                  </button>
-                  
-                  <button
-                    style={{
-                      ...styles.button,
-                      backgroundColor: '#3b82f6',
-                      flex: 1
-                    }}
-                    onClick={() => abrirOdontogramaModal(servicio)}
-                    disabled={!nombrePaciente}
-                    title="Seleccionar piezas dentales específicas"
-                  >
-                    🦷 Piezas
-                  </button>
-                </div>
+              onFocus={(e) => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)'}
+              onBlur={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)'}
+            />
+            {/* Indicador de búsqueda */}
+            {terminoBusqueda.trim() && (
+              <div style={{
+                position: 'absolute',
+                right: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '12px',
+                color: '#64748b',
+                backgroundColor: '#f1f5f9',
+                padding: '2px 8px',
+                borderRadius: '4px'
+              }}>
+                {serviciosFiltrados.length} {t.serviciosEncontrados}
               </div>
-            ))}
+            )}
           </div>
         )}
-      </div>
 
-      {/* Lista de servicios del paciente actual */}
-      {serviciosPacienteActual.length > 0 && (
-        <div style={styles.serviciosPacienteContainer}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, color: '#1e293b' }}>
-              📋 Servicios de {nombrePaciente || 'este paciente'}
-            </h3>
-            <button
-              style={{
-                backgroundColor: '#fee2e2',
-                color: '#dc2626',
-                border: 'none',
-                borderRadius: '0.375rem',
-                padding: '0.5rem 1rem',
-                cursor: 'pointer',
-                fontSize: '0.75rem'
-              }}
-              onClick={() => {
-                const confirmar = window.confirm('¿Eliminar todos los servicios de este paciente?');
-                if (confirmar) setServiciosPacienteActual([]);
-              }}
-            >
-              🗑️ Limpiar Todo
-            </button>
-          </div>
-          
-          {serviciosPacienteActual.map((item, index) => (
-            <div key={index} style={styles.servicioItem}>
-              <div style={styles.servicioItemInfo}>
-                <div style={styles.servicioItemNombre}>{item.servicio.nombre}</div>
-                <div style={styles.servicioItemDetalles}>
-                  <span>Cantidad: {item.cantidad}</span>
-                  {item.piezasDentales.length > 0 && (
-                    <span>Piezas: {item.piezasDentales.join(', ')}</span>
-                  )}
-                  {item.notas && <span>Notas: {item.notas}</span>}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={styles.servicioItemPrecio}>
-                  ${item.servicio.precio_base * item.cantidad}
-                </div>
-                <button
-                  style={{
-                    backgroundColor: '#fee2e2',
-                    color: '#dc2626',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    padding: '0.5rem',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem'
-                  }}
-                  onClick={() => eliminarServicioDePaciente(index)}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          ))}
-
-          <div style={styles.totalPaciente}>
-            <span>Subtotal para este paciente:</span>
-            <span>${calcularTotalPaciente(serviciosPacienteActual)}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Lista de pacientes agregados */}
-      {trabajosPacientes.length > 0 && (
-        <div style={styles.listaPacientesContainer}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h3 style={{ margin: 0, color: '#1e293b' }}>
-              📝 Lista de Pacientes ({trabajosPacientes.length})
-            </h3>
-            <button
-              style={{
-                backgroundColor: '#fee2e2',
-                color: '#dc2626',
-                border: 'none',
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1.5rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: '600'
-              }}
-              onClick={() => {
-                const confirmar = window.confirm('¿Estás seguro de que quieres eliminar todos los pacientes de la lista?');
-                if (confirmar) setTrabajosPacientes([]);
-              }}
-            >
-              🗑️ Vaciar Lista
-            </button>
-          </div>
-          
-          {trabajosPacientes.map((paciente) => (
-            <div key={paciente.id} style={styles.pacienteItem}>
-              <div style={styles.pacienteHeader}>
-                <div>
-                  <h4 style={styles.pacienteNombre}>{paciente.paciente}</h4>
-                  {paciente.run && <div style={styles.pacienteRun}>RUN: {paciente.run}</div>}
-                </div>
-                <button
-                  style={{
-                    backgroundColor: '#fee2e2',
-                    color: '#dc2626',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    padding: '0.5rem 1rem',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem'
-                  }}
-                  onClick={() => eliminarPacienteDeLista(paciente.id)}
-                >
-                  Eliminar
-                </button>
-              </div>
-
-              <div style={styles.serviciosList}>
-                {paciente.servicios.map((servicio, index) => (
-                  <div key={index} style={styles.servicioResumenItem}>
-                    <div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>
-                        {servicio.servicio.nombre}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Cantidad: {servicio.cantidad}
-                        {servicio.piezasDentales.length > 0 && ` • Piezas: ${servicio.piezasDentales.join(', ')}`}
-                        {servicio.notas && ` • Notas: ${servicio.notas}`}
-                      </div>
-                    </div>
-                    <div style={{ fontWeight: '600', color: '#059669' }}>
-                      ${servicio.servicio.precio_base * servicio.cantidad}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={styles.totalPaciente}>
-                <span>Total:</span>
-                <span>${calcularTotalPaciente(paciente.servicios)}</span>
-              </div>
-            </div>
-          ))}
-
-          {/* Total general */}
-          <div style={styles.totalGeneralContainer}>
-            <div style={styles.totalGeneralLabel}>
-              TOTAL GENERAL ({trabajosPacientes.length} paciente{trabajosPacientes.length !== 1 ? 's' : ''})
-            </div>
-            <div style={styles.totalGeneralMonto}>${calcularTotalGeneral()}</div>
-          </div>
-
-          <div style={styles.actionsContainer}>
-            <button
-              style={styles.buttonSecondary}
-              onClick={resetearTodo}
-              disabled={cargando}
-            >
-              🔄 Reiniciar Todo
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Estado vacío */}
-      {trabajosPacientes.length === 0 && serviciosPacienteActual.length === 0 && !cargando && (
-        <div style={styles.emptyState}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📋</div>
-          <h3 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>
-            Lista de trabajos vacía
-          </h3>
-          <p style={{ color: '#64748b', maxWidth: '500px', margin: '0 auto' }}>
-            Comienza agregando servicios a un paciente. Cada servicio tiene dos botones para agregarlo.
-          </p>
-        </div>
-      )}
-
-      {/* Botón flotante de guardar */}
-      {trabajosPacientes.length > 0 && (
-        <div style={styles.floatingSaveButton}>
+        {/* Botón para limpiar todo */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
           <button
-            style={puedeGuardarTodo ? {
-              backgroundColor: '#10b981',
-              color: 'white',
-              padding: '1rem 2rem',
-              border: 'none',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '1rem',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            } : {
-              backgroundColor: '#9ca3af',
-              color: 'white',
-              padding: '1rem 2rem',
-              border: 'none',
-              borderRadius: '50px',
-              cursor: 'not-allowed',
-              fontWeight: '600',
-              fontSize: '1rem',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onClick={guardarTodosLosTrabajos}
-            disabled={!puedeGuardarTodo || cargando}
+            style={styles.clearButton}
+            onClick={limpiarTodo}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
           >
-            {cargando ? '🔄' : '💾'} 
-            {cargando ? ' Guardando...' : ` Guardar (${trabajosPacientes.length})`}
+            🗑️ {t.limpiarTrabajo}
           </button>
         </div>
-      )}
 
-      {/* Modal de Odontograma */}
-      {mostrarOdontogramaModal && servicioSeleccionado && (
-        <div style={styles.modalOverlay} onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setMostrarOdontogramaModal(false);
-          }
-        }}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>
-                🦷 Selecciona las piezas para: {servicioSeleccionado.nombre}
-              </h2>
-              <button 
-                style={styles.closeButton}
-                onClick={() => setMostrarOdontogramaModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div style={styles.odontogramaContainer}>
-              <div style={styles.odontogramaGrid}>
-                {piezasDentales.map(pieza => (
+        {/* Modo seleccionado */}
+        {modoDetallado ? (
+          renderModoDetallado()
+        ) : (
+          /* Modo Simple */
+          <div>
+            {/* Filtros de categoría */}
+            <div style={styles.filtersContainer}>
+              <h4 style={{ marginBottom: '1rem', color: '#1e293b' }}>Filtrar por categoría:</h4>
+              <div style={styles.filters}>
+                {Object.entries(categorias).map(([key, nombre]) => (
                   <button
-                    key={pieza}
+                    key={key}
                     style={{
-                      ...styles.piezaButton,
-                      ...(piezasSeleccionadas.includes(pieza) ? styles.piezaButtonSelected : {})
+                      ...styles.filterButton,
+                      ...(categoriaSeleccionada === key ? styles.filterButtonActive : {})
                     }}
-                    onClick={() => togglePiezaDental(pieza)}
+                    onClick={() => setCategoriaSeleccionada(key)}
                   >
-                    {pieza}
+                    {nombre} ({key === 'todos' ? servicios.length : servicios.filter(s => s.categoria === key).length})
                   </button>
                 ))}
               </div>
+            </div>
 
-              {piezasSeleccionadas.length > 0 && (
-                <div style={styles.piezasSeleccionadasContainer}>
-                  <div style={{ fontSize: '0.875rem', color: '#374151', fontWeight: '500' }}>
-                    Piezas seleccionadas ({piezasSeleccionadas.length}):
+            {/* Información de búsqueda */}
+            {terminoBusquedaDebounced.trim() && serviciosFiltrados.length > 0 && (
+              <div style={styles.resultadosInfo}>
+                {t.resultadosPara} "<strong>{terminoBusquedaDebounced}</strong>"
+                {categoriaSeleccionada !== 'todos' && ` ${t.enCategoria} ${categorias[categoriaSeleccionada as keyof typeof categorias]}`}
+                : <strong>{serviciosFiltrados.length}</strong> {t.serviciosEncontrados}
+              </div>
+            )}
+
+            {/* Lista de servicios */}
+            {cargandoServicios ? (
+              <div style={styles.loadingContainer}>
+                <div style={{ fontSize: '3rem' }}>🔄</div>
+                <div style={styles.loadingText}>{t.cargandoServicios}</div>
+              </div>
+            ) : serviciosFiltrados.length === 0 ? (
+              <div style={styles.emptyState}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+                <h3 style={{ marginBottom: '0.5rem' }}>{t.sinServicios}</h3>
+                <p>
+                  {categoriaSeleccionada !== 'todos' 
+                    ? `No hay servicios en la categoría "${categorias[categoriaSeleccionada as keyof typeof categorias]}"`
+                    : terminoBusqueda.trim() 
+                    ? `No hay resultados para "${terminoBusqueda}"`
+                    : 'Comienza agregando servicios en la Gestión de Precios'
+                  }
+                </p>
+              </div>
+            ) : (
+              <div style={styles.serviciosGrid}>
+                {serviciosFiltrados.map(servicio => (
+                  <div 
+                    key={servicio.id} 
+                    style={styles.servicioCard}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                      e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+                    }}
+                  >
+                    <div style={styles.cardHeader}>
+                      <h3 style={styles.servicioNombre}>{servicio.nombre}</h3>
+                      <span style={styles.categoriaBadge}>
+                        {categorias[servicio.categoria as keyof typeof categorias]}
+                      </span>
+                    </div>
+
+                    <div style={styles.precio}>
+                      {formatearPrecioCLP(servicio.precio_base)}
+                    </div>
+
+                    <div style={styles.controlesServicio}>
+                      <input
+                        type="number"
+                        style={styles.inputCantidad}
+                        value={cantidades[servicio.id] || 1}
+                        min="1"
+                        onChange={(e) => actualizarCantidad(servicio.id, parseInt(e.target.value) || 1)}
+                        placeholder="Cant"
+                      />
+                      
+                      <input
+                        type="text"
+                        style={styles.inputPieza}
+                        value={piezasDentales[servicio.id] || ''}
+                        onChange={(e) => actualizarPiezaDental(servicio.id, e.target.value)}
+                        placeholder="Pieza"
+                      />
+                      
+                      <button 
+                        style={styles.addButton}
+                        onClick={() => agregarTrabajoSimple(servicio)}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                      >
+                        {t.agregar}
+                      </button>
+                    </div>
                   </div>
-                  <div style={styles.piezasList}>
-                    {piezasSeleccionadas.map(pieza => (
-                      <div key={pieza} style={styles.piezaTag}>
-                        {pieza}
-                        <button
-                          style={styles.removePiezaButton}
-                          onClick={() => togglePiezaDental(pieza)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Lista de Trabajos Agregados */}
+        <div style={styles.trabajosContainer}>
+          <h3 style={{ color: '#1e293b', marginBottom: '1.5rem', fontSize: '1.5rem' }}>
+            📋 {t.trabajosAgregados} ({trabajosAgregados.length})
+          </h3>
+          
+          {trabajosAgregados.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+              <p>
+                No hay trabajos agregados. Completa los datos y agrega servicios.
+              </p>
+            </div>
+          ) : (
+            <>
+              {trabajosAgregados.map((trabajo) => (
+                <div key={trabajo.id} style={styles.trabajoItem}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>
+                      {trabajo.servicio.nombre}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#64748b' }}>
+                      <div>👤 {trabajo.paciente} {trabajo.rutPaciente && `(${trabajo.rutPaciente})`}</div>
+                      <div>🦷 Pieza: {trabajo.piezaDental || 'No especificada'}</div>
+                      <div>🔢 Cantidad: {trabajo.cantidad}</div>
+                      {trabajo.observaciones && (
+                        <div style={{ marginTop: '0.5rem', fontSize: '12px', color: '#475569', backgroundColor: '#f1f5f9', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                          {trabajo.observaciones.split('\n')[0]}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700, color: '#059669', fontSize: '1.25rem' }}>
+                      {formatearPrecioCLP(trabajo.precioUnitario * trabajo.cantidad)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '0.25rem' }}>
+                      {trabajo.cantidad > 1 && `(${formatearPrecioCLP(trabajo.precioUnitario)} c/u)`}
+                    </div>
+                    <button 
+                      style={{ 
+                        padding: '0.5rem 1rem',
+                        border: 'none',
+                        borderRadius: '0.375rem',
+                        background: '#ef4444',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        marginTop: '0.75rem'
+                      }}
+                      onClick={() => eliminarTrabajo(trabajo.id)}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                    >
+                      {t.eliminar}
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
+              ))}
+              
+              <div style={styles.totalContainer}>
+                <span style={styles.totalText}>{t.total}:</span>
+                <span style={styles.totalAmount}>{formatearPrecioCLP(calcularTotal())}</span>
+              </div>
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-              <button
-                style={styles.buttonSecondary}
-                onClick={() => setMostrarOdontogramaModal(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                style={servicioSeleccionado ? styles.buttonSuccess : styles.buttonDisabled}
-                onClick={agregarServicioConPiezas}
-                disabled={!servicioSeleccionado}
-              >
-                ➕ Agregar con Piezas Seleccionadas
-              </button>
-            </div>
-          </div>
+              <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                <button 
+                  style={{ 
+                    ...styles.addButton,
+                    padding: '1rem 3rem',
+                    fontSize: '1.125rem',
+                    opacity: puedeFinalizar ? 1 : 0.5,
+                    cursor: puedeFinalizar ? 'pointer' : 'not-allowed'
+                  }}
+                  onClick={finalizarTrabajo}
+                  disabled={!puedeFinalizar}
+                  onMouseEnter={(e) => {
+                    if (puedeFinalizar) {
+                      e.currentTarget.style.backgroundColor = '#2563eb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (puedeFinalizar) {
+                      e.currentTarget.style.backgroundColor = '#3b82f6';
+                    }
+                  }}
+                >
+                  {t.finalizar}
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      )}
-
-      <style>
-        {`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}
-      </style>
+      </main>
     </div>
   );
 };
